@@ -1,23 +1,28 @@
-// Not required for test files
-// ignore_for_file: prefer_const_constructors
-
 import 'package:rich_i18n/rich_i18n.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('RichTextItem', () {
     test('equality by value', () {
-      final item1 = RichTextItem(text: 'hello', bold: true);
-      final item2 = RichTextItem(text: 'hello', bold: true);
-      final item3 = RichTextItem(text: 'hello', bold: false);
+      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+      final item2 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+      final item3 = RichTextItem(text: 'hello', fontWeight: 400);
 
       expect(item1, equals(item2));
       expect(item1, isNot(equals(item3)));
     });
 
     test('hashCode is consistent with equality', () {
-      final item1 = RichTextItem(text: 'hello', bold: true, color: '#FF0000');
-      final item2 = RichTextItem(text: 'hello', bold: true, color: '#FF0000');
+      final item1 = RichTextItem(
+        text: 'hello',
+        fontWeight: kBoldFontWeight,
+        color: '#FF0000',
+      );
+      final item2 = RichTextItem(
+        text: 'hello',
+        fontWeight: kBoldFontWeight,
+        color: '#FF0000',
+      );
 
       expect(item1.hashCode, equals(item2.hashCode));
     });
@@ -32,17 +37,30 @@ void main() {
     });
 
     test('hasSameStyle returns true for same style different text', () {
-      final item1 = RichTextItem(text: 'hello', bold: true);
-      final item2 = RichTextItem(text: 'world', bold: true);
+      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+      final item2 = RichTextItem(text: 'world', fontWeight: kBoldFontWeight);
 
       expect(item1.hasSameStyle(item2), isTrue);
     });
 
     test('hasSameStyle returns false for different styles', () {
-      final item1 = RichTextItem(text: 'hello', bold: true);
-      final item2 = RichTextItem(text: 'hello', bold: false);
+      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+      final item2 = RichTextItem(text: 'hello', fontWeight: 400);
 
       expect(item1.hasSameStyle(item2), isFalse);
+    });
+
+    test('bold getter returns true when fontWeight is 700', () {
+      final item = RichTextItem(text: 'test', fontWeight: kBoldFontWeight);
+      expect(item.bold, isTrue);
+    });
+
+    test('bold getter returns false when fontWeight is not 700', () {
+      final item1 = RichTextItem(text: 'test', fontWeight: 400);
+      final item2 = RichTextItem(text: 'test');
+
+      expect(item1.bold, isFalse);
+      expect(item2.bold, isFalse);
     });
   });
 
@@ -55,10 +73,11 @@ void main() {
         expect(result, hasLength(2));
 
         expect(result[0].text, equals('hello '));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
 
         expect(result[1].text, equals('dart'));
         expect(result[1].bold, isTrue);
+        expect(result[1].fontWeight, equals(kBoldFontWeight));
       });
 
       test('also works with <b> tag', () {
@@ -67,7 +86,7 @@ void main() {
         expect(result, hasLength(2));
 
         expect(result[0].text, equals('hello '));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
 
         expect(result[1].text, equals('dart'));
         expect(result[1].bold, isTrue);
@@ -86,7 +105,7 @@ void main() {
 
         // "hello " - no style
         expect(result[0].text, equals('hello '));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
         expect(result[0].textDecoration, isNull);
 
         // "dart and " - bold only
@@ -115,7 +134,7 @@ void main() {
 
         // "hello " - no style
         expect(result[0].text, equals('hello '));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
         expect(result[0].textDecoration, isNull);
 
         // "dart and " - bold only
@@ -130,7 +149,7 @@ void main() {
 
         // " !" - no style (same as "hello ")
         expect(result[3].text, equals(' !'));
-        expect(result[3].bold, isNull);
+        expect(result[3].bold, isFalse);
         expect(result[3].textDecoration, isNull);
       });
     });
@@ -143,7 +162,7 @@ void main() {
 
         expect(result, hasLength(1));
         expect(result[0].text, equals('hello  world'));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
       });
     });
 
@@ -158,7 +177,7 @@ void main() {
 
         expect(result, hasLength(1));
         expect(result[0].text, equals('hello world'));
-        expect(result[0].bold, isNull);
+        expect(result[0].bold, isFalse);
       });
 
       test('consecutive same-style segments are merged', () {
@@ -212,7 +231,8 @@ void main() {
         expect(result[0].text, equals('styled'));
         expect(result[0].color, equals('#FF0000'));
         expect(result[0].fontSize, equals(16.0));
-        expect(result[0].fontWeight, equals(700));
+        expect(result[0].fontWeight, equals(kBoldFontWeight));
+        expect(result[0].bold, isTrue);
       });
 
       test('strikethrough text', () {
@@ -289,7 +309,7 @@ void main() {
         expect(result[0].bold, isTrue);
 
         expect(result[1].text, equals('normal'));
-        expect(result[1].bold, isNull);
+        expect(result[1].bold, isFalse);
 
         expect(result[2].text, equals('bold again'));
         expect(result[2].bold, isTrue);

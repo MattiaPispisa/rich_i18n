@@ -4,18 +4,16 @@
 /// tags (similar to HTML) and convert them into a list of [RichTextItem]
 /// objects with styling properties.
 ///
-/// Example:
-/// ```dart
-/// import 'package:rich_i18n/rich_i18n.dart';
-///
-/// void main() {
-///   final items = getRichText('Hello <b>World</b>!');
-///   // items[0].text == 'Hello '
-///   // items[1].text == 'World', items[1].bold == true
-///   // items[2].text == '!'
-/// }
-/// ```
+/// {@macro rich_i18n_supported_tags}
+/// {@macro rich_i18n_examples}
 library rich_i18n;
 
-export 'src/rich_i18n.dart';
-export 'src/rich_text_item.dart' show RichTextItem;
+import 'package:rich_i18n/rich_i18n.dart';
+
+export 'src/rich_i18n.dart' show getRichText;
+export 'src/rich_text_item.dart'
+    show
+        RichTextItem,
+        kBoldFontWeight,
+        kLineThroughTextDecoration,
+        kUnderlineTextDecoration;

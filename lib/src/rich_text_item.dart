@@ -1,15 +1,34 @@
+/// The font weight value that represents bold text.
+const int kBoldFontWeight = 700;
+
+/// The text decoration value that represents underline text.
+const String kUnderlineTextDecoration = 'underline';
+
+/// The text decoration value that represents line through text.
+const String kLineThroughTextDecoration = 'lineThrough';
+
 /// Represents a segment of rich text with styling properties.
 ///
 /// Each [RichTextItem] contains text and optional styling attributes
 /// that can be applied to render rich formatted text.
 ///
 /// Equality is based on property values, not reference.
-/// The hashCode is cached at construction time for efficiency.
+///
+/// Example:
+/// ```dart
+/// final item1 = RichTextItem(text: 'hello', fontWeight: 700);
+/// final item2 = RichTextItem(text: 'hello', fontWeight: 700);
+/// final item3 = RichTextItem(text: 'hello', fontWeight: 400);
+/// item1 == item2 // true
+/// item1 == item3 // false
+/// ```
+///
+/// Note: [bold] is a convenience getter that returns `true` when
+/// [fontWeight] equals [kBoldFontWeight] (700).
 class RichTextItem {
   /// Creates a new [RichTextItem] with the given properties.
   RichTextItem({
     required this.text,
-    this.bold,
     this.color,
     this.link,
     this.backgroundColor,
@@ -19,7 +38,6 @@ class RichTextItem {
     this.textDecoration,
   }) : _cachedHashCode = _computeHashCode(
           text: text,
-          bold: bold,
           color: color,
           link: link,
           backgroundColor: backgroundColor,
@@ -32,9 +50,6 @@ class RichTextItem {
   /// The text content of this item.
   final String text;
 
-  /// Whether the text is bold.
-  final bool? bold;
-
   /// The text color (e.g., "#FF0000" or "red").
   final String? color;
 
@@ -45,6 +60,8 @@ class RichTextItem {
   final String? backgroundColor;
 
   /// The font weight (e.g., 400 for normal, 700 for bold).
+  ///
+  /// See also [bold] for a convenient way to check if the text is bold.
   final int? fontWeight;
 
   /// The font size in logical pixels.
@@ -53,16 +70,24 @@ class RichTextItem {
   /// The font family name.
   final String? fontFamily;
 
-  /// The text decoration (e.g., "underline", "line-through").
+  /// The text decoration.
+  /// 
+  /// Currently supported are:
+  /// - [kUnderlineTextDecoration]
+  /// - [kLineThroughTextDecoration]
   final String? textDecoration;
 
   /// Cached hash code computed at construction time.
   final int _cachedHashCode;
 
+  /// Whether the text is bold.
+  ///
+  /// Returns `true` if [fontWeight] equals [kBoldFontWeight] (700),
+  bool get bold => fontWeight == kBoldFontWeight;
+
   /// Computes the hash code based on all properties.
   static int _computeHashCode({
     required String text,
-    bool? bold,
     String? color,
     String? link,
     String? backgroundColor,
@@ -73,7 +98,6 @@ class RichTextItem {
   }) {
     return Object.hash(
       text,
-      bold,
       color,
       link,
       backgroundColor,
@@ -95,15 +119,7 @@ class RichTextItem {
     if (other is! RichTextItem) {
       return false;
     }
-    return text == other.text &&
-        bold == other.bold &&
-        color == other.color &&
-        link == other.link &&
-        backgroundColor == other.backgroundColor &&
-        fontWeight == other.fontWeight &&
-        fontSize == other.fontSize &&
-        fontFamily == other.fontFamily &&
-        textDecoration == other.textDecoration;
+    return text == other.text && hasSameStyle(other);
   }
 
   @override
@@ -120,79 +136,11 @@ class RichTextItem {
         'textDecoration: $textDecoration)';
   }
 
-  /// Creates a copy of this item with the given text but same styling.
-  RichTextItem copyWithText(String newText) {
-    return RichTextItem(
-      text: newText,
-      bold: bold,
-      color: color,
-      link: link,
-      backgroundColor: backgroundColor,
-      fontWeight: fontWeight,
-      fontSize: fontSize,
-      fontFamily: fontFamily,
-      textDecoration: textDecoration,
-    );
-  }
-
-  /// Returns true if this item has the same style as [other],
-  /// ignoring the text content.
-  bool hasSameStyle(RichTextItem other) {
-    return bold == other.bold &&
-        color == other.color &&
-        link == other.link &&
-        backgroundColor == other.backgroundColor &&
-        fontWeight == other.fontWeight &&
-        fontSize == other.fontSize &&
-        fontFamily == other.fontFamily &&
-        textDecoration == other.textDecoration;
-  }
-}
-
-/// Represents the current styling context while parsing.
-///
-/// This class is used internally to track the accumulated styles
-/// as we traverse the XML tree.
-class StyleContext {
-  /// Creates a new [StyleContext] with optional initial values.
-  const StyleContext({
-    this.bold,
-    this.color,
-    this.link,
-    this.backgroundColor,
-    this.fontWeight,
-    this.fontSize,
-    this.fontFamily,
-    this.textDecoration,
-  });
-
-  /// Whether the text is bold.
-  final bool? bold;
-
-  /// The text color.
-  final String? color;
-
-  /// The link URL.
-  final String? link;
-
-  /// The background color.
-  final String? backgroundColor;
-
-  /// The font weight.
-  final int? fontWeight;
-
-  /// The font size.
-  final double? fontSize;
-
-  /// The font family.
-  final String? fontFamily;
-
-  /// The text decoration.
-  final String? textDecoration;
-
-  /// Creates a new [StyleContext] by merging this context with new values.
-  StyleContext merge({
-    bool? bold,
+  /// Creates a copy of this item with the given properties replaced.
+  ///
+  /// Any parameter that is not provided will retain the current value.
+  RichTextItem copyWith({
+    String? text,
     String? color,
     String? link,
     String? backgroundColor,
@@ -201,8 +149,8 @@ class StyleContext {
     String? fontFamily,
     String? textDecoration,
   }) {
-    return StyleContext(
-      bold: bold ?? this.bold,
+    return RichTextItem(
+      text: text ?? this.text,
       color: color ?? this.color,
       link: link ?? this.link,
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -213,25 +161,10 @@ class StyleContext {
     );
   }
 
-  /// Creates a [RichTextItem] from this context with the given text.
-  RichTextItem toRichTextItem(String text) {
-    return RichTextItem(
-      text: text,
-      bold: bold,
-      color: color,
-      link: link,
-      backgroundColor: backgroundColor,
-      fontWeight: fontWeight,
-      fontSize: fontSize,
-      fontFamily: fontFamily,
-      textDecoration: textDecoration,
-    );
-  }
-
-  /// Returns true if this context has the same style as [other].
-  bool hasSameStyle(StyleContext other) {
-    return bold == other.bold &&
-        color == other.color &&
+  /// Returns true if this item has the same style as [other],
+  /// ignoring the text content.
+  bool hasSameStyle(RichTextItem other) {
+    return color == other.color &&
         link == other.link &&
         backgroundColor == other.backgroundColor &&
         fontWeight == other.fontWeight &&
@@ -240,4 +173,3 @@ class StyleContext {
         textDecoration == other.textDecoration;
   }
 }
-
