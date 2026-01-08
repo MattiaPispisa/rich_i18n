@@ -1,4 +1,4 @@
-import 'package:rich_i18n/rich_i18n.dart';
+import '../../lib/rich_i18n.dart';
 import 'package:test/test.dart';
 
 void main() {

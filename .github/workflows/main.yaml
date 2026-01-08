@@ -10,7 +10,7 @@ jobs:
   rich_i18n:
     uses: ./.github/workflows/dart_package.yaml
     with:
-      working_directory: .
+      working_directory: ./rich_i18n
       min_coverage: 100
       package_name: rich_i18n
     secrets:

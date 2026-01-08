@@ -8,7 +8,7 @@
 /// {@macro rich_i18n_examples}
 library rich_i18n;
 
-import 'package:rich_i18n/rich_i18n.dart';
+import 'rich_i18n.dart';
 
 export 'src/rich_i18n.dart' show tryGetRichTextSync;
 export 'src/rich_text_item.dart'

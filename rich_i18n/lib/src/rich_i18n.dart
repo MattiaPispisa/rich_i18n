@@ -1,4 +1,4 @@
-import 'package:rich_i18n/src/rich_text_item.dart';
+import 'rich_text_item.dart';
 import 'package:xml/xml.dart';
 
 /// Parses a rich text string with XML tags
@@ -100,6 +100,38 @@ const _textDecorationAttributeName = 'text-decoration';
 const _textDecorationCssAttributeName = 'textDecoration';
 
 const _hrefAttributeName = 'href';
+
+const List<String> _spanAvailableAttributes = [
+  _colorAttributeName,
+  _backgroundColorAttributeName,
+  _fontWeightAttributeName,
+  _fontSizeAttributeName,
+  _fontFamilyAttributeName,
+  _textDecorationAttributeName,
+  _hrefAttributeName,
+];
+
+const List<String> _aAvailableAttributes = [
+  _hrefAttributeName,
+];
+
+const List<String> _tagAvailables = [
+  'span',
+  'a',
+  'font',
+  'i',
+  'italic',
+  'em',
+  'b',
+  'bold',
+  'strong',
+  'u',
+  'underline',
+  's',
+  'strike',
+  'strikethrough',
+  'del',
+];
 
 /// Returns the updated style based on the XML element.
 RichTextItem _getStyleForElement(
