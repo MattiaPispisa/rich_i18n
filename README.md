@@ -2,14 +2,6 @@
 
 A Dart library for parsing rich text with XML tags into structured items.
 
-## Why not Flutter?
-
-This library is intentionally **framework-agnostic** and has no Flutter dependency:
-
-- **No version constraints**: Your app won't have conflicts with Flutter SDK versions
-- **No custom widgets to maintain**: You don't need to import and maintain a third-party widget in your codebase
-- **Maximum flexibility**: Convert to `TextSpan`, HTML, or any other format you need
-- **Pure Dart**: Can be used in CLI tools, servers, or any Dart project
 
 ## Installation
 
@@ -49,13 +41,7 @@ final items = getRichText('Hello <b>bold and <u>underline</u></b>!');
 
 ### All Supported Tags
 
-| Tag                         | Description                 | Example                                  |
-|-----------------------------|-----------------------------|------------------------------------------|
-| `<b>`, `<bold>`, `<strong>` | Bold text (fontWeight: 700) | `<b>bold</b>`                            |
-| `<u>`, `<underline>`        | Underlined text             | `<u>underline</u>`                       |
-| `<s>`, `<strike>`, `<del>`  | Strikethrough text          | `<s>deleted</s>`                         |
-| `<a href="url">`            | Hyperlink                   | `<a href="https://example.com">link</a>` |
-| `<span>`                    | Custom styling              | See below                                |
+See the full list of supported tags in the [getRichText API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/getRichText.html).
 
 ### Span Attributes
 
@@ -64,21 +50,13 @@ final items = getRichText('''
   <span 
     color="#FF0000" 
     background-color="yellow"
-    font-size="18"
-    font-weight="500"
-    font-family="Roboto">
+    >
     Styled text
   </span>
 ''');
 ```
 
-Supported attributes:
-- `color` - Text color (e.g., "#FF0000", "red")
-- `background-color` or `backgroundColor` - Background color
-- `font-weight` or `fontWeight` - Font weight (e.g., "400", "700")
-- `font-size` or `fontSize` - Font size in pixels
-- `font-family` or `fontFamily` - Font family name
-- `text-decoration` or `textDecoration` - Text decoration
+See the full list of supported attributes in the [getRichText API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/getRichText.html).
 
 ## Error Handling
 
@@ -94,3 +72,12 @@ final items = getRichText('Invalid <b>XML');
 - `RichTextItem` caches its `hashCode` at construction time for efficient use in collections
 - Consecutive text segments with the same style are automatically merged
 - Empty tags are ignored (no unnecessary items created)
+
+## Why not Flutter?
+
+This library is intentionally **framework-agnostic** and has no Flutter dependency:
+
+- **No version constraints**: Your app won't have conflicts with Flutter SDK versions
+- **No custom widgets to maintain**: You don't need to import and maintain a third-party widget in your codebase
+- **Maximum flexibility**: Convert to `TextSpan`, HTML, or any other format you need
+- **Pure Dart**: Can be used in CLI tools, servers, or any Dart project
