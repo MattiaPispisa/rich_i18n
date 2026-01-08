@@ -24,11 +24,11 @@ import 'package:xml/xml.dart';
 /// Examples:
 /// ```dart
 /// // Simple bold text
-/// getRichText('hello <b>dart</b>');
+/// tryGetRichTextSync('hello <b>dart</b>');
 /// // Returns: [RichTextItem(text: 'hello '), RichTextItem(text: 'dart', bold: true)]
 ///
 /// // Nested tags
-/// getRichText('hello <b>dart and <u>flutter</u></b>');
+/// tryGetRichTextSync('hello <b>dart and <u>flutter</u></b>');
 /// // Returns: [
 /// //   RichTextItem(text: 'hello '),
 /// //   RichTextItem(text: 'dart and ', bold: true),
@@ -36,7 +36,7 @@ import 'package:xml/xml.dart';
 /// // ]
 /// ```
 /// {@endtemplate}
-List<RichTextItem> getRichText(String text) {
+List<RichTextItem>? tryGetRichTextSync(String text) {
   if (text.isEmpty) {
     return [];
   }
@@ -48,8 +48,8 @@ List<RichTextItem> getRichText(String text) {
   try {
     document = XmlDocument.parse(wrappedText);
   } catch (e) {
-    // If parsing fails, return the original text as a single item
-    return [RichTextItem(text: text)];
+    // If parsing fails, return null
+    return null;
   }
 
   final result = <RichTextItem>[];
@@ -77,12 +77,9 @@ void _parseNode(
     for (final child in node.children) {
       _parseNode(child, newStyle, result);
     }
-  } else {
-    // For other node types (comments, CDATA, etc.), process children if any
-    for (final child in node.children) {
-      _parseNode(child, currentStyle, result);
-    }
   }
+  // Other node types (comments, CDATA, etc.) are ignored as they have no
+  // children that need processing
 }
 
 const _colorAttributeName = 'color';

@@ -17,7 +17,7 @@ dependencies:
 ```dart
 import 'package:rich_i18n/rich_i18n.dart';
 
-final items = getRichText('Hello <b>World</b>!');
+final items = tryGetRichTextSync('Hello <b>World</b>!');
 // Result:
 // [
 //   RichTextItem(text: 'Hello '),
@@ -29,7 +29,7 @@ final items = getRichText('Hello <b>World</b>!');
 ### Nested Tags
 
 ```dart
-final items = getRichText('Hello <b>bold and <u>underline</u></b>!');
+final items = tryGetRichTextSync('Hello <b>bold and <u>underline</u></b>!');
 // Result:
 // [
 //   RichTextItem(text: 'Hello '),
@@ -41,12 +41,12 @@ final items = getRichText('Hello <b>bold and <u>underline</u></b>!');
 
 ### All Supported Tags
 
-See the full list of supported tags in the [getRichText API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/getRichText.html).
+See the full list of supported tags in the [tryGetRichTextSync API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/tryGetRichTextSync.html).
 
 ### Span Attributes
 
 ```dart
-final items = getRichText('''
+final items = tryGetRichTextSync('''
   <span 
     color="#FF0000" 
     background-color="yellow"
@@ -56,14 +56,14 @@ final items = getRichText('''
 ''');
 ```
 
-See the full list of supported attributes in the [getRichText API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/getRichText.html).
+See the full list of supported attributes in the [tryGetRichTextSync API documentation](https://pub.dev/documentation/rich_i18n/latest/rich_i18n/tryGetRichTextSync.html).
 
 ## Error Handling
 
 If the input contains invalid XML, the original text is returned as a single `RichTextItem`:
 
 ```dart
-final items = getRichText('Invalid <b>XML');
+final items = tryGetRichTextSync('Invalid <b>XML');
 // Result: [RichTextItem(text: 'Invalid <b>XML')]
 ```
 

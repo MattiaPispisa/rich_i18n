@@ -10,7 +10,7 @@ library rich_i18n;
 
 import 'package:rich_i18n/rich_i18n.dart';
 
-export 'src/rich_i18n.dart' show getRichText;
+export 'src/rich_i18n.dart' show tryGetRichTextSync;
 export 'src/rich_text_item.dart'
     show
         RichTextItem,
