@@ -1,62 +1,96 @@
-# Rich I18n
+# rich_i18n
 
-[![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
-[![Powered by Mason](https://img.shields.io/endpoint?url=https%3A%2F%2Ftinyurl.com%2Fmason-badge)](https://github.com/felangel/mason)
-[![License: MIT][license_badge]][license_link]
+A Dart library for parsing rich text with XML tags into structured items.
 
-A Very Good Project created by Very Good CLI.
+## Why not Flutter?
 
-## Installation 💻
+This library is intentionally **framework-agnostic** and has no Flutter dependency:
 
-**❗ In order to start using Rich I18n you must have the [Dart SDK][dart_install_link] installed on your machine.**
+- **No version constraints**: Your app won't have conflicts with Flutter SDK versions
+- **No custom widgets to maintain**: You don't need to import and maintain a third-party widget in your codebase
+- **Maximum flexibility**: Convert to `TextSpan`, HTML, or any other format you need
+- **Pure Dart**: Can be used in CLI tools, servers, or any Dart project
 
-Install via `dart pub add`:
+## Installation
 
-```sh
-dart pub add rich_i18n
+```yaml
+dependencies:
+  rich_i18n: ^0.1.0
 ```
 
----
+## Usage
 
-## Continuous Integration 🤖
+### Basic Example
 
-Rich I18n comes with a built-in [GitHub Actions workflow][github_actions_link] powered by [Very Good Workflows][very_good_workflows_link] but you can also add your preferred CI/CD solution.
+```dart
+import 'package:rich_i18n/rich_i18n.dart';
 
-Out of the box, on each pull request and push, the CI `formats`, `lints`, and `tests` the code. This ensures the code remains consistent and behaves correctly as you add functionality or make changes. The project uses [Very Good Analysis][very_good_analysis_link] for a strict set of analysis options used by our team. Code coverage is enforced using the [Very Good Workflows][very_good_coverage_link].
-
----
-
-## Running Tests 🧪
-
-To run all unit tests:
-
-```sh
-dart pub global activate coverage 1.15.0
-dart test --coverage=coverage
-dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+final items = getRichText('Hello <b>World</b>!');
+// Result:
+// [
+//   RichTextItem(text: 'Hello '),
+//   RichTextItem(text: 'World', fontWeight: 700),
+//   RichTextItem(text: '!'),
+// ]
 ```
 
-To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov).
+### Nested Tags
 
-```sh
-# Generate Coverage Report
-genhtml coverage/lcov.info -o coverage/
-
-# Open Coverage Report
-open coverage/index.html
+```dart
+final items = getRichText('Hello <b>bold and <u>underline</u></b>!');
+// Result:
+// [
+//   RichTextItem(text: 'Hello '),
+//   RichTextItem(text: 'bold and ', fontWeight: 700),
+//   RichTextItem(text: 'underline', fontWeight: 700, textDecoration: 'underline'),
+//   RichTextItem(text: '!'),
+// ]
 ```
 
-[dart_install_link]: https://dart.dev/get-dart
-[github_actions_link]: https://docs.github.com/en/actions/learn-github-actions
-[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license_link]: https://opensource.org/licenses/MIT
-[logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
-[logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
-[mason_link]: https://github.com/felangel/mason
-[very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
-[very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
-[very_good_coverage_link]: https://github.com/marketplace/actions/very-good-coverage
-[very_good_ventures_link]: https://verygood.ventures
-[very_good_ventures_link_light]: https://verygood.ventures#gh-light-mode-only
-[very_good_ventures_link_dark]: https://verygood.ventures#gh-dark-mode-only
-[very_good_workflows_link]: https://github.com/VeryGoodOpenSource/very_good_workflows
+### All Supported Tags
+
+| Tag                         | Description                 | Example                                  |
+|-----------------------------|-----------------------------|------------------------------------------|
+| `<b>`, `<bold>`, `<strong>` | Bold text (fontWeight: 700) | `<b>bold</b>`                            |
+| `<u>`, `<underline>`        | Underlined text             | `<u>underline</u>`                       |
+| `<s>`, `<strike>`, `<del>`  | Strikethrough text          | `<s>deleted</s>`                         |
+| `<a href="url">`            | Hyperlink                   | `<a href="https://example.com">link</a>` |
+| `<span>`                    | Custom styling              | See below                                |
+
+### Span Attributes
+
+```dart
+final items = getRichText('''
+  <span 
+    color="#FF0000" 
+    background-color="yellow"
+    font-size="18"
+    font-weight="500"
+    font-family="Roboto">
+    Styled text
+  </span>
+''');
+```
+
+Supported attributes:
+- `color` - Text color (e.g., "#FF0000", "red")
+- `background-color` or `backgroundColor` - Background color
+- `font-weight` or `fontWeight` - Font weight (e.g., "400", "700")
+- `font-size` or `fontSize` - Font size in pixels
+- `font-family` or `fontFamily` - Font family name
+- `text-decoration` or `textDecoration` - Text decoration
+
+## Error Handling
+
+If the input contains invalid XML, the original text is returned as a single `RichTextItem`:
+
+```dart
+final items = getRichText('Invalid <b>XML');
+// Result: [RichTextItem(text: 'Invalid <b>XML')]
+```
+
+## Performance
+
+- `RichTextItem` caches its `hashCode` at construction time for efficient use in collections
+- Consecutive text segments with the same style are automatically merged
+- Empty tags are ignored (no unnecessary items created)

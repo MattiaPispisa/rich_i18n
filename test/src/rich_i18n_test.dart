@@ -116,7 +116,7 @@ void main() {
         // "flutter" - bold and underline
         expect(result[2].text, equals('flutter'));
         expect(result[2].bold, isTrue);
-        expect(result[2].textDecoration, equals('underline'));
+        expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
       });
     });
 
@@ -145,7 +145,7 @@ void main() {
         // "flutter" - bold and underline
         expect(result[2].text, equals('flutter'));
         expect(result[2].bold, isTrue);
-        expect(result[2].textDecoration, equals('underline'));
+        expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
 
         // " !" - no style (same as "hello ")
         expect(result[3].text, equals(' !'));
@@ -244,7 +244,7 @@ void main() {
         expect(result[0].textDecoration, isNull);
 
         expect(result[1].text, equals('deleted'));
-        expect(result[1].textDecoration, equals('line-through'));
+        expect(result[1].textDecoration, equals(kLineThroughTextDecoration));
 
         expect(result[2].text, equals(' text'));
         expect(result[2].textDecoration, isNull);
@@ -264,12 +264,12 @@ void main() {
 
         expect(result[1].text, equals('bold-underline '));
         expect(result[1].bold, isTrue);
-        expect(result[1].textDecoration, equals('underline'));
+        expect(result[1].textDecoration, equals(kUnderlineTextDecoration));
         expect(result[1].color, isNull);
 
         expect(result[2].text, equals('bold-underline-red'));
         expect(result[2].bold, isTrue);
-        expect(result[2].textDecoration, equals('underline'));
+        expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
         expect(result[2].color, equals('red'));
       });
 

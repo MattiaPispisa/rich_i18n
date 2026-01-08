@@ -71,7 +71,7 @@ class RichTextItem {
   final String? fontFamily;
 
   /// The text decoration.
-  /// 
+  ///
   /// Currently supported are:
   /// - [kUnderlineTextDecoration]
   /// - [kLineThroughTextDecoration]
