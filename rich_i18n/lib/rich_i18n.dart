@@ -8,12 +8,9 @@
 /// {@macro rich_i18n_examples}
 library rich_i18n;
 
-import 'package:rich_i18n/rich_i18n.dart';
+import 'package:rich_i18n/src/_item.dart';
 
-export 'src/rich_i18n.dart' show getRichText;
-export 'src/rich_text_item.dart'
-    show
-        RichTextItem,
-        kBoldFontWeight,
-        kLineThroughTextDecoration,
-        kUnderlineTextDecoration;
+export 'src/_descriptor.dart';
+export 'src/_exception.dart';
+export 'src/_item.dart';
+export 'src/rich_i18n.dart';

@@ -1,3 +1,5 @@
+import 'package:rich_i18n/rich_i18n.dart';
+
 /// The font weight value that represents bold text.
 const int kBoldFontWeight = 700;
 
@@ -6,6 +8,9 @@ const String kUnderlineTextDecoration = 'underline';
 
 /// The text decoration value that represents line through text.
 const String kLineThroughTextDecoration = 'lineThrough';
+
+/// The font style value that represents italic text.
+const String kItalicFontStyle = 'italic';
 
 /// Represents a segment of rich text with styling properties.
 ///
@@ -35,10 +40,12 @@ class RichTextItem {
     this.fontWeight,
     this.fontSize,
     this.fontFamily,
+    this.fontStyle,
     this.textDecoration,
   }) : _cachedHashCode = _computeHashCode(
           text: text,
           color: color,
+          fontStyle: fontStyle,
           link: link,
           backgroundColor: backgroundColor,
           fontWeight: fontWeight,
@@ -70,6 +77,12 @@ class RichTextItem {
   /// The font family name.
   final String? fontFamily;
 
+  /// The font style.
+  ///
+  /// Currently supported are:
+  /// - [kItalicFontStyle]
+  final String? fontStyle;
+
   /// The text decoration.
   ///
   /// Currently supported are:
@@ -88,16 +101,18 @@ class RichTextItem {
   /// Computes the hash code based on all properties.
   static int _computeHashCode({
     required String text,
-    String? color,
-    String? link,
-    String? backgroundColor,
-    int? fontWeight,
-    double? fontSize,
-    String? fontFamily,
-    String? textDecoration,
+    required String? fontStyle,
+    required String? color,
+    required String? link,
+    required String? backgroundColor,
+    required int? fontWeight,
+    required double? fontSize,
+    required String? fontFamily,
+    required String? textDecoration,
   }) {
     return Object.hash(
       text,
+      fontStyle,
       color,
       link,
       backgroundColor,
@@ -133,6 +148,7 @@ class RichTextItem {
         'fontWeight: $fontWeight, '
         'fontSize: $fontSize, '
         'fontFamily: $fontFamily, '
+        'fontStyle: $fontStyle, '
         'textDecoration: $textDecoration)';
   }
 
@@ -148,6 +164,7 @@ class RichTextItem {
     double? fontSize,
     String? fontFamily,
     String? textDecoration,
+    String? fontStyle,
   }) {
     return RichTextItem(
       text: text ?? this.text,
@@ -158,6 +175,7 @@ class RichTextItem {
       fontSize: fontSize ?? this.fontSize,
       fontFamily: fontFamily ?? this.fontFamily,
       textDecoration: textDecoration ?? this.textDecoration,
+      fontStyle: fontStyle ?? this.fontStyle,
     );
   }
 
@@ -170,6 +188,64 @@ class RichTextItem {
         fontWeight == other.fontWeight &&
         fontSize == other.fontSize &&
         fontFamily == other.fontFamily &&
+        fontStyle == other.fontStyle &&
         textDecoration == other.textDecoration;
+  }
+}
+
+/// A [RichTextItem] with additional descriptor information.
+///
+/// Used by [verboseGetRichText] to provide information about
+/// unrecognized tags and attributes.
+class VerboseRichTextItem extends RichTextItem {
+  /// Creates a new [VerboseRichTextItem] with the given properties
+  /// and descriptor.
+  VerboseRichTextItem({
+    required super.text,
+    super.color,
+    super.link,
+    super.backgroundColor,
+    super.fontWeight,
+    super.fontSize,
+    super.fontFamily,
+    super.textDecoration,
+    this.descriptor = RichTextItemDescriptor.empty,
+  });
+
+  /// Creates a [VerboseRichTextItem] from a [RichTextItem] and descriptor.
+  VerboseRichTextItem.fromItem({
+    required RichTextItem item,
+    this.descriptor = RichTextItemDescriptor.empty,
+  }) : super(
+          text: item.text,
+          color: item.color,
+          link: item.link,
+          backgroundColor: item.backgroundColor,
+          fontWeight: item.fontWeight,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          textDecoration: item.textDecoration,
+        );
+
+  /// The descriptor containing any parsing issues for this item.
+  final RichTextItemDescriptor descriptor;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! VerboseRichTextItem) {
+      return super == other;
+    }
+    return super == other && descriptor == other.descriptor;
+  }
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, descriptor);
+
+  @override
+  String toString() {
+    return 'VerboseRichTextItem(${super.toString()}, descriptor: $descriptor)';
   }
 }

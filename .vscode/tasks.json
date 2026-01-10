@@ -1,0 +1,66 @@
+{
+  // See https://code.visualstudio.com/docs/editor/tasks for more options
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "[rich_i18n] Format",
+      "type": "shell",
+      "command": "dart",
+      "args": [
+        "format",
+        "--line-length",
+        "80",
+        "--set-exit-if-changed",
+        "lib",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/rich_i18n"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "[rich_i18n]Coverage",
+      "type": "shell",
+      "command": "dart pub global run coverage:test_with_coverage && genhtml coverage/lcov.info -o coverage/html && open coverage/html/index.html",
+      "options": {
+        "cwd": "${workspaceFolder}/rich_i18n"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "[rich_i18n] Analyze",
+      "type": "shell",
+      "command": "dart",
+      "args": [
+        "analyze",
+        "--fatal-infos",
+        "--fatal-warnings",
+        "lib",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/rich_i18n"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      }
+    }
+  ]
+}
