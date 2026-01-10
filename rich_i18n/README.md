@@ -82,6 +82,21 @@ final items = tryGetRichTextSync('Invalid <b>XML');
 - Consecutive text segments with the same style are automatically merged
 - Empty tags are ignored (no unnecessary items created)
 
+## Flutter Example
+
+A complete Flutter example app is available in the `flutter_example` directory,
+demonstrating how to convert the parsed `RichTextItem` objects into Flutter's
+`TextSpan` widgets for rendering rich text in Flutter applications.
+
+The example includes an interactive editor where you can:
+- Edit XML source with rich text tags
+- See the rendered preview in real-time
+- Test various formatting options (bold, underline, colors, links, etc.)
+
+<img width="500" alt="rich_text_flutter_example" src="https://raw.githubusercontent.com/MattiaPispisa/rich_i18n/main/assets/rich_text_flutter_example.png">
+
+To run the Flutter example:
+
 ## Why not Flutter?
 
 This library is intentionally **framework-agnostic** and has no Flutter dependency:

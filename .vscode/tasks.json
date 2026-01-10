@@ -61,6 +61,43 @@
         "focus": false,
         "clear": true
       }
+    },
+    {
+      "label": "[rich_i18n] Run Example",
+      "type": "shell",
+      "command": "dart",
+      "args": [
+        "run",
+        "example/main.dart"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/rich_i18n"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      }
+    },
+    {
+      "label": "[flutter_example] Run Flutter Example",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/rich_i18n/flutter_example"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      }
     }
   ]
 }
