@@ -10,13 +10,7 @@ library rich_i18n;
 
 import 'package:rich_i18n/src/_item.dart';
 
-export 'src/_descriptor.dart' show RichTextItemDescriptor;
-export 'src/_exception.dart' show RichTextException;
-export 'src/_item.dart'
-    show
-        RichTextItem,
-        VerboseRichTextItem,
-        kBoldFontWeight,
-        kLineThroughTextDecoration,
-        kUnderlineTextDecoration;
-export 'src/rich_i18n.dart' show tryGetRichTextSync, verboseGetRichText;
+export 'src/_descriptor.dart';
+export 'src/_exception.dart';
+export 'src/_item.dart';
+export 'src/rich_i18n.dart';

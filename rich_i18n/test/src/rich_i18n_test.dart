@@ -2,96 +2,210 @@ import 'package:rich_i18n/rich_i18n.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('RichTextItem', () {
-    test('equality by value', () {
-      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
-      final item2 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
-      final item3 = RichTextItem(text: 'hello', fontWeight: 400);
+  // ===========================================================================
+  // DATA MODELS
+  // ===========================================================================
+  group('Data Models', () {
+    group('RichTextItem', () {
+      test('equality by value', () {
+        final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+        final item2 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+        final item3 = RichTextItem(text: 'hello', fontWeight: 400);
 
-      expect(item1, equals(item2));
-      expect(item1, isNot(equals(item3)));
+        expect(item1, equals(item2));
+        expect(item1, isNot(equals(item3)));
+      });
+
+      test('hashCode is consistent with equality', () {
+        final item1 = RichTextItem(
+          text: 'hello',
+          fontWeight: kBoldFontWeight,
+          color: '#FF0000',
+        );
+        final item2 = RichTextItem(
+          text: 'hello',
+          fontWeight: kBoldFontWeight,
+          color: '#FF0000',
+        );
+
+        expect(item1.hashCode, equals(item2.hashCode));
+      });
+
+      test('hashCode is cached', () {
+        final item = RichTextItem(text: 'test');
+        final hashCode1 = item.hashCode;
+        final hashCode2 = item.hashCode;
+
+        // Both calls should return the same value (cached)
+        expect(hashCode1, equals(hashCode2));
+      });
+
+      test('hasSameStyle returns true for same style different text', () {
+        final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+        final item2 = RichTextItem(text: 'world', fontWeight: kBoldFontWeight);
+
+        expect(item1.hasSameStyle(item2), isTrue);
+      });
+
+      test('hasSameStyle returns false for different styles', () {
+        final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
+        final item2 = RichTextItem(text: 'hello', fontWeight: 400);
+
+        expect(item1.hasSameStyle(item2), isFalse);
+      });
+
+      test('bold getter returns true when fontWeight is 700', () {
+        final item = RichTextItem(text: 'test', fontWeight: kBoldFontWeight);
+        expect(item.bold, isTrue);
+      });
+
+      test('bold getter returns false when fontWeight is not 700', () {
+        final item1 = RichTextItem(text: 'test', fontWeight: 400);
+        final item2 = RichTextItem(text: 'test');
+
+        expect(item1.bold, isFalse);
+        expect(item2.bold, isFalse);
+      });
+
+      test('toString returns correct representation', () {
+        final item = RichTextItem(
+          text: 'hello',
+          fontWeight: kBoldFontWeight,
+          color: '#FF0000',
+          link: 'https://example.com',
+          backgroundColor: 'yellow',
+          fontSize: 16,
+          fontFamily: 'Roboto',
+          textDecoration: kUnderlineTextDecoration,
+        );
+
+        final str = item.toString();
+
+        expect(str, contains('text: "hello"'));
+        expect(str, contains('bold: true'));
+        expect(str, contains('color: #FF0000'));
+        expect(str, contains('link: https://example.com'));
+        expect(str, contains('backgroundColor: yellow'));
+        expect(str, contains('fontWeight: 700'));
+        expect(str, contains('fontSize: 16'));
+        expect(str, contains('fontFamily: Roboto'));
+        expect(str, contains('textDecoration: underline'));
+      });
     });
 
-    test('hashCode is consistent with equality', () {
-      final item1 = RichTextItem(
-        text: 'hello',
-        fontWeight: kBoldFontWeight,
-        color: '#FF0000',
-      );
-      final item2 = RichTextItem(
-        text: 'hello',
-        fontWeight: kBoldFontWeight,
-        color: '#FF0000',
-      );
+    group('RichTextItemDescriptor', () {
+      test('empty descriptor has no issues', () async {
+        const descriptor = RichTextItemDescriptor.empty;
+        expect(descriptor.isEmpty, isTrue);
+        expect(descriptor.hasIssues, isFalse);
+      });
 
-      expect(item1.hashCode, equals(item2.hashCode));
+      test('descriptor with unrecognized tag has issues', () async {
+        const descriptor = RichTextItemDescriptor(unrecognizedTag: 'foo');
+        expect(descriptor.hasIssues, isTrue);
+        expect(descriptor.isEmpty, isFalse);
+      });
+
+      test('descriptor with unrecognized attributes has issues', () async {
+        const descriptor = RichTextItemDescriptor(
+          unrecognizedAttributes: ['foo', 'bar'],
+        );
+        expect(descriptor.hasIssues, isTrue);
+      });
+
+      test('descriptor equality works', () async {
+        const d1 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        const d2 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        const d3 = RichTextItemDescriptor(unrecognizedTag: 'foo');
+        const d4 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['baz'],
+        );
+
+        expect(d1, equals(d2));
+        expect(d1, isNot(equals(d3)));
+        expect(d1, isNot(equals(d4)));
+      });
+
+      test('descriptor toString works', () async {
+        const descriptor = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        final str = descriptor.toString();
+        expect(str, contains('unrecognizedTag: foo'));
+        expect(str, contains('unrecognizedAttributes'));
+      });
+
+      test('empty descriptor toString', () {
+        expect(
+          RichTextItemDescriptor.empty.toString(),
+          equals('RichTextItemDescriptor.empty'),
+        );
+      });
     });
 
-    test('hashCode is cached', () {
-      final item = RichTextItem(text: 'test');
-      final hashCode1 = item.hashCode;
-      final hashCode2 = item.hashCode;
+    group('RichTextException', () {
+      test('toString without cause', () {
+        const e = RichTextException('test message');
+        expect(e.toString(), equals('RichTextException: test message'));
+      });
 
-      // Both calls should return the same value (cached)
-      expect(hashCode1, equals(hashCode2));
+      test('toString with cause', () {
+        final e = RichTextException('test message', cause: Exception('cause'));
+        expect(e.toString(), contains('test message'));
+        expect(e.toString(), contains('caused by'));
+      });
     });
 
-    test('hasSameStyle returns true for same style different text', () {
-      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
-      final item2 = RichTextItem(text: 'world', fontWeight: kBoldFontWeight);
+    group('VerboseRichTextItem', () {
+      test('equality works', () {
+        final item1 = VerboseRichTextItem(text: 'hello');
+        final item2 = VerboseRichTextItem(text: 'hello');
+        final item3 = VerboseRichTextItem(text: 'world');
 
-      expect(item1.hasSameStyle(item2), isTrue);
-    });
+        expect(item1, equals(item2));
+        expect(item1, isNot(equals(item3)));
+      });
 
-    test('hasSameStyle returns false for different styles', () {
-      final item1 = RichTextItem(text: 'hello', fontWeight: kBoldFontWeight);
-      final item2 = RichTextItem(text: 'hello', fontWeight: 400);
+      test('identical check in equality', () {
+        final item = VerboseRichTextItem(text: 'hello');
+        expect(item == item, isTrue);
+      });
 
-      expect(item1.hasSameStyle(item2), isFalse);
-    });
+      test('equality works with different types', () {
+        final item = VerboseRichTextItem(text: 'hello');
+        // ignore: unrelated_type_equality_checks for test purposes
+        expect(item == 'VerboseRichTextItem', isFalse);
+      });
 
-    test('bold getter returns true when fontWeight is 700', () {
-      final item = RichTextItem(text: 'test', fontWeight: kBoldFontWeight);
-      expect(item.bold, isTrue);
-    });
+      test('hashCode is consistent', () {
+        final item1 = VerboseRichTextItem(text: 'hello');
+        final item2 = VerboseRichTextItem(text: 'hello');
 
-    test('bold getter returns false when fontWeight is not 700', () {
-      final item1 = RichTextItem(text: 'test', fontWeight: 400);
-      final item2 = RichTextItem(text: 'test');
+        expect(item1.hashCode, equals(item2.hashCode));
+      });
 
-      expect(item1.bold, isFalse);
-      expect(item2.bold, isFalse);
-    });
-
-    test('toString returns correct representation', () {
-      final item = RichTextItem(
-        text: 'hello',
-        fontWeight: kBoldFontWeight,
-        color: '#FF0000',
-        link: 'https://example.com',
-        backgroundColor: 'yellow',
-        fontSize: 16,
-        fontFamily: 'Roboto',
-        textDecoration: kUnderlineTextDecoration,
-      );
-
-      final str = item.toString();
-
-      expect(str, contains('text: "hello"'));
-      expect(str, contains('bold: true'));
-      expect(str, contains('color: #FF0000'));
-      expect(str, contains('link: https://example.com'));
-      expect(str, contains('backgroundColor: yellow'));
-      expect(str, contains('fontWeight: 700'));
-      expect(str, contains('fontSize: 16'));
-      expect(str, contains('fontFamily: Roboto'));
-      expect(str, contains('textDecoration: underline'));
+      test('toString works', () {
+        final item = VerboseRichTextItem(text: 'hello');
+        final str = item.toString();
+        expect(str, contains('VerboseRichTextItem'));
+        expect(str, contains('hello'));
+      });
     });
   });
 
+  // ===========================================================================
+  // SYNC PARSING (tryGetRichTextSync)
+  // ===========================================================================
   group('tryGetRichTextSync', () {
-    group('Use Case 1: Simple bold tag', () {
-      // "hello <bold>dart</bold>" creates two RichTextItem
+    group('Basic Text & Structure', () {
       test('creates two RichTextItem for "hello <bold>dart</bold>"', () {
         final result = tryGetRichTextSync('hello <bold>dart</bold>');
 
@@ -118,11 +232,50 @@ void main() {
         expect(result[1].text, equals('dart'));
         expect(result[1].bold, isTrue);
       });
+
+      test('empty string returns empty list', () {
+        final result = tryGetRichTextSync('');
+
+        expect(result, isNotNull);
+        expect(result, isEmpty);
+      });
+
+      test('plain text without tags returns single item', () {
+        final result = tryGetRichTextSync('hello world');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('hello world'));
+        expect(result[0].bold, isFalse);
+      });
+
+      test('consecutive same-style segments are merged', () {
+        final result = tryGetRichTextSync('<b>hello</b><b> world</b>');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('hello world'));
+        expect(result[0].bold, isTrue);
+      });
+
+      test('alternating styles create multiple items', () {
+        final result = tryGetRichTextSync('<b>bold</b>normal<b>bold again</b>');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(3));
+
+        expect(result![0].text, equals('bold'));
+        expect(result[0].bold, isTrue);
+
+        expect(result[1].text, equals('normal'));
+        expect(result[1].bold, isFalse);
+
+        expect(result[2].text, equals('bold again'));
+        expect(result[2].bold, isTrue);
+      });
     });
 
-    group('Use Case 2: Nested tags', () {
-      // "hello <bold>dart and <underline>flutter</underline></bold>"
-      // creates three RichTextItem
+    group('Nesting & Complex Logic', () {
       test('creates three RichTextItem for nested bold and underline', () {
         final result = tryGetRichTextSync(
           'hello <bold>dart and <underline>flutter</underline></bold>',
@@ -146,13 +299,7 @@ void main() {
         expect(result[2].bold, isTrue);
         expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
       });
-    });
 
-    group('Use Case 3: Style changes back', () {
-      // "hello <bold>dart and <underline>flutter</underline></bold> !"
-      // The "!" returns to having the same style as "hello " but needs a new
-      // RichTextItem because the previous one (with text "flutter") was also
-      // underline.
       test('creates four RichTextItem when style changes back', () {
         final result = tryGetRichTextSync(
           'hello <bold>dart and <underline>flutter</underline></bold> !',
@@ -181,65 +328,33 @@ void main() {
         expect(result[3].bold, isFalse);
         expect(result[3].textDecoration, isNull);
       });
-    });
 
-    group('Use Case 4: Empty tags', () {
-      // "hello <bold></bold> world"
-      // The bold tag is empty, not needed, just one RichTextItem
-      test('creates one RichTextItem for empty bold tag', () {
-        final result = tryGetRichTextSync('hello <bold></bold> world');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('hello  world'));
-        expect(result[0].bold, isFalse);
-      });
-    });
-
-    group('Additional tests', () {
-      test('empty string returns empty list', () {
-        final result = tryGetRichTextSync('');
-
-        expect(result, isNotNull);
-        expect(result, isEmpty);
-      });
-
-      test('plain text without tags returns single item', () {
-        final result = tryGetRichTextSync('hello world');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('hello world'));
-        expect(result[0].bold, isFalse);
-      });
-
-      test('consecutive same-style segments are merged', () {
-        final result = tryGetRichTextSync('<b>hello</b><b> world</b>');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('hello world'));
-        expect(result[0].bold, isTrue);
-      });
-
-      test('link tag with href', () {
+      test('deeply nested tags', () {
         final result = tryGetRichTextSync(
-          'Click <a href="https://example.com">here</a> for more',
+          '<b>bold <u>bold-underline <span color="red">bold-underline-red</span></u></b>',
         );
 
         expect(result, isNotNull);
         expect(result, hasLength(3));
 
-        expect(result![0].text, equals('Click '));
-        expect(result[0].link, isNull);
+        expect(result![0].text, equals('bold '));
+        expect(result[0].bold, isTrue);
+        expect(result[0].textDecoration, isNull);
+        expect(result[0].color, isNull);
 
-        expect(result[1].text, equals('here'));
-        expect(result[1].link, equals('https://example.com'));
+        expect(result[1].text, equals('bold-underline '));
+        expect(result[1].bold, isTrue);
+        expect(result[1].textDecoration, equals(kUnderlineTextDecoration));
+        expect(result[1].color, isNull);
 
-        expect(result[2].text, equals(' for more'));
-        expect(result[2].link, isNull);
+        expect(result[2].text, equals('bold-underline-red'));
+        expect(result[2].bold, isTrue);
+        expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
+        expect(result[2].color, equals('red'));
       });
+    });
 
+    group('Attributes (Span & Font)', () {
       test('span with color attribute', () {
         final result = tryGetRichTextSync(
           'Hello <span color="#FF0000">red</span> world',
@@ -272,52 +387,6 @@ void main() {
         expect(result[0].bold, isTrue);
       });
 
-      test('strikethrough text', () {
-        final result = tryGetRichTextSync('normal <s>deleted</s> text');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(3));
-
-        expect(result![0].text, equals('normal '));
-        expect(result[0].textDecoration, isNull);
-
-        expect(result[1].text, equals('deleted'));
-        expect(result[1].textDecoration, equals(kLineThroughTextDecoration));
-
-        expect(result[2].text, equals(' text'));
-        expect(result[2].textDecoration, isNull);
-      });
-
-      test('deeply nested tags', () {
-        final result = tryGetRichTextSync(
-          '<b>bold <u>bold-underline <span color="red">bold-underline-red</span></u></b>',
-        );
-
-        expect(result, isNotNull);
-        expect(result, hasLength(3));
-
-        expect(result![0].text, equals('bold '));
-        expect(result[0].bold, isTrue);
-        expect(result[0].textDecoration, isNull);
-        expect(result[0].color, isNull);
-
-        expect(result[1].text, equals('bold-underline '));
-        expect(result[1].bold, isTrue);
-        expect(result[1].textDecoration, equals(kUnderlineTextDecoration));
-        expect(result[1].color, isNull);
-
-        expect(result[2].text, equals('bold-underline-red'));
-        expect(result[2].bold, isTrue);
-        expect(result[2].textDecoration, equals(kUnderlineTextDecoration));
-        expect(result[2].color, equals('red'));
-      });
-
-      test('invalid XML returns null', () {
-        final result = tryGetRichTextSync('hello <b>world');
-
-        expect(result, isNull);
-      });
-
       test('background color attribute', () {
         final result = tryGetRichTextSync(
           '<span background-color="yellow">highlighted</span>',
@@ -340,28 +409,30 @@ void main() {
         expect(result[0].fontFamily, equals('Roboto'));
       });
 
-      test('alternating styles create multiple items', () {
-        final result = tryGetRichTextSync('<b>bold</b>normal<b>bold again</b>');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(3));
-
-        expect(result![0].text, equals('bold'));
-        expect(result[0].bold, isTrue);
-
-        expect(result[1].text, equals('normal'));
-        expect(result[1].bold, isFalse);
-
-        expect(result[2].text, equals('bold again'));
-        expect(result[2].bold, isTrue);
-      });
-
-      test('XML comments are ignored', () {
-        final result = tryGetRichTextSync('hello <!-- comment --> world');
+      test('span with text-decoration attribute', () {
+        final result = tryGetRichTextSync(
+          '<span text-decoration="underline">decorated</span>',
+        );
 
         expect(result, isNotNull);
         expect(result, hasLength(1));
-        expect(result![0].text, equals('hello  world'));
+        expect(result![0].text, equals('decorated'));
+        expect(result[0].textDecoration, equals('underline'));
+      });
+
+      test('camelCase attribute names work', () {
+        final result = tryGetRichTextSync(
+          '<span backgroundColor="yellow" fontWeight="700" fontSize="14" '
+          'fontFamily="Arial" textDecoration="underline">styled</span>',
+        );
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].backgroundColor, equals('yellow'));
+        expect(result[0].fontWeight, equals(700));
+        expect(result[0].fontSize, equals(14.0));
+        expect(result[0].fontFamily, equals('Arial'));
+        expect(result[0].textDecoration, equals('underline'));
       });
 
       test('font tag works like span', () {
@@ -375,37 +446,25 @@ void main() {
         expect(result[0].color, equals('red'));
         expect(result[0].fontSize, equals(18.0));
       });
+    });
 
-      test('italic tags are parsed but have no effect', () {
-        final result = tryGetRichTextSync('normal <i>italic</i> text');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('normal italic text'));
-      });
-
-      test('italic tag alias works', () {
-        final result1 = tryGetRichTextSync('<italic>text</italic>');
-        final result2 = tryGetRichTextSync('<em>text</em>');
-
-        expect(result1, isNotNull);
-        expect(result1, hasLength(1));
-        expect(result1![0].text, equals('text'));
-
-        expect(result2, isNotNull);
-        expect(result2, hasLength(1));
-        expect(result2![0].text, equals('text'));
-      });
-
-      test('span with text-decoration attribute', () {
+    group('Tag Specific Tests', () {
+      test('link tag with href', () {
         final result = tryGetRichTextSync(
-          '<span text-decoration="underline">decorated</span>',
+          'Click <a href="https://example.com">here</a> for more',
         );
 
         expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('decorated'));
-        expect(result[0].textDecoration, equals('underline'));
+        expect(result, hasLength(3));
+
+        expect(result![0].text, equals('Click '));
+        expect(result[0].link, isNull);
+
+        expect(result[1].text, equals('here'));
+        expect(result[1].link, equals('https://example.com'));
+
+        expect(result[2].text, equals(' for more'));
+        expect(result[2].link, isNull);
       });
 
       test('span with href attribute', () {
@@ -428,14 +487,6 @@ void main() {
         expect(result[0].link, isNull);
       });
 
-      test('unknown tags are treated as containers', () {
-        final result = tryGetRichTextSync('hello <custom>world</custom>!');
-
-        expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('hello world!'));
-      });
-
       test('strong tag works like bold', () {
         final result = tryGetRichTextSync('<strong>strong text</strong>');
 
@@ -443,6 +494,22 @@ void main() {
         expect(result, hasLength(1));
         expect(result![0].text, equals('strong text'));
         expect(result[0].bold, isTrue);
+      });
+
+      test('strikethrough text', () {
+        final result = tryGetRichTextSync('normal <s>deleted</s> text');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(3));
+
+        expect(result![0].text, equals('normal '));
+        expect(result[0].textDecoration, isNull);
+
+        expect(result[1].text, equals('deleted'));
+        expect(result[1].textDecoration, equals(kLineThroughTextDecoration));
+
+        expect(result[2].text, equals(' text'));
+        expect(result[2].textDecoration, isNull);
       });
 
       test('del tag works like strikethrough', () {
@@ -473,24 +540,66 @@ void main() {
         expect(result[0].textDecoration, equals(kLineThroughTextDecoration));
       });
 
-      test('camelCase attribute names work', () {
-        final result = tryGetRichTextSync(
-          '<span backgroundColor="yellow" fontWeight="700" fontSize="14" '
-          'fontFamily="Arial" textDecoration="underline">styled</span>',
-        );
+      test('italic tags are parsed but have no effect', () {
+        final result = tryGetRichTextSync('normal <i>italic</i> text');
 
         expect(result, isNotNull);
         expect(result, hasLength(1));
-        expect(result![0].backgroundColor, equals('yellow'));
-        expect(result[0].fontWeight, equals(700));
-        expect(result[0].fontSize, equals(14.0));
-        expect(result[0].fontFamily, equals('Arial'));
-        expect(result[0].textDecoration, equals('underline'));
+        expect(result![0].text, equals('normal italic text'));
+      });
+
+      test('italic tag alias works', () {
+        final result1 = tryGetRichTextSync('<italic>text</italic>');
+        final result2 = tryGetRichTextSync('<em>text</em>');
+
+        expect(result1, isNotNull);
+        expect(result1, hasLength(1));
+        expect(result1![0].text, equals('text'));
+
+        expect(result2, isNotNull);
+        expect(result2, hasLength(1));
+        expect(result2![0].text, equals('text'));
+      });
+    });
+
+    group('Edge Cases & Errors', () {
+      test('creates one RichTextItem for empty bold tag', () {
+        final result = tryGetRichTextSync('hello <bold></bold> world');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('hello  world'));
+        expect(result[0].bold, isFalse);
+      });
+
+      test('invalid XML returns null', () {
+        final result = tryGetRichTextSync('hello <b>world');
+
+        expect(result, isNull);
+      });
+
+      test('XML comments are ignored', () {
+        final result = tryGetRichTextSync('hello <!-- world -->');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('hello '));
+      });
+
+      test('unknown tags are treated as containers', () {
+        final result = tryGetRichTextSync('hello <custom>world</custom>!');
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('hello world!'));
       });
     });
   });
 
-  group('verboseGetRichTextSync', () {
+  // ===========================================================================
+  // ASYNC VERBOSE PARSING (verboseGetRichText)
+  // ===========================================================================
+  group('verboseGetRichText', () {
     group('Exception handling', () {
       test('throws RichTextException for unclosed tag', () async {
         RichTextException? caught;
@@ -536,7 +645,7 @@ void main() {
       });
     });
 
-    group('Unrecognized tags', () {
+    group('Unrecognized Tags', () {
       test('reports unrecognized tag in descriptor', () async {
         final result = await verboseGetRichText('<hi>hello dart</hi>');
 
@@ -565,7 +674,7 @@ void main() {
       });
     });
 
-    group('Unrecognized attributes', () {
+    group('Unrecognized Attributes', () {
       test('reports unrecognized attribute on bold tag', () async {
         final result =
             await verboseGetRichText('<bold color="red">hello dart</bold>');
@@ -650,7 +759,7 @@ void main() {
       });
     });
 
-    group('Valid parsing', () {
+    group('Valid Parsing & Merging', () {
       test('returns empty descriptor for recognized tags', () async {
         final result = await verboseGetRichText('<b>hello</b>');
 
@@ -722,125 +831,6 @@ void main() {
         expect(result, hasLength(1));
         expect(result[0].link, equals('https://example.com'));
         expect(result[0].descriptor.unrecognizedAttributes, contains('target'));
-      });
-    });
-
-    group('RichTextItemDescriptor', () {
-      test('empty descriptor has no issues', () async {
-        const descriptor = RichTextItemDescriptor.empty;
-        expect(descriptor.isEmpty, isTrue);
-        expect(descriptor.hasIssues, isFalse);
-      });
-
-      test('descriptor with unrecognized tag has issues', () async {
-        const descriptor = RichTextItemDescriptor(unrecognizedTag: 'foo');
-        expect(descriptor.hasIssues, isTrue);
-        expect(descriptor.isEmpty, isFalse);
-      });
-
-      test('descriptor with unrecognized attributes has issues', () async {
-        const descriptor = RichTextItemDescriptor(
-          unrecognizedAttributes: ['foo', 'bar'],
-        );
-        expect(descriptor.hasIssues, isTrue);
-      });
-
-      test('descriptor equality works', () async {
-        const d1 = RichTextItemDescriptor(
-          unrecognizedTag: 'foo',
-          unrecognizedAttributes: ['bar'],
-        );
-        const d2 = RichTextItemDescriptor(
-          unrecognizedTag: 'foo',
-          unrecognizedAttributes: ['bar'],
-        );
-        const d3 = RichTextItemDescriptor(unrecognizedTag: 'foo');
-        const d4 = RichTextItemDescriptor(
-          unrecognizedTag: 'foo',
-          unrecognizedAttributes: ['baz'],
-        );
-
-        expect(d1, equals(d2));
-        expect(d1, isNot(equals(d3)));
-        expect(d1, isNot(equals(d4)));
-      });
-
-      test('descriptor toString works', () async {
-        const descriptor = RichTextItemDescriptor(
-          unrecognizedTag: 'foo',
-          unrecognizedAttributes: ['bar'],
-        );
-        final str = descriptor.toString();
-        expect(str, contains('unrecognizedTag: foo'));
-        expect(str, contains('unrecognizedAttributes'));
-      });
-
-      test('empty descriptor toString', () {
-        expect(
-          RichTextItemDescriptor.empty.toString(),
-          equals('RichTextItemDescriptor.empty'),
-        );
-      });
-    });
-
-    group('RichTextException', () {
-      test('toString without cause', () {
-        const e = RichTextException('test message');
-        expect(e.toString(), equals('RichTextException: test message'));
-      });
-
-      test('toString with cause', () {
-        final e = RichTextException('test message', cause: Exception('cause'));
-        expect(e.toString(), contains('test message'));
-        expect(e.toString(), contains('caused by'));
-      });
-    });
-
-    group('VerboseRichTextItem', () {
-      test('equality works', () {
-        final item1 = VerboseRichTextItem(
-          text: 'hello',
-        );
-        final item2 = VerboseRichTextItem(text: 'hello');
-        final item3 = VerboseRichTextItem(text: 'world');
-
-        expect(item1, equals(item2));
-        expect(item1, isNot(equals(item3)));
-      });
-
-      test('identical check in equality', () {
-        final item = VerboseRichTextItem(
-          text: 'hello',
-        );
-        expect(item == item, isTrue);
-      });
-
-      test('equality works with different types', () {
-        final item = VerboseRichTextItem(
-          text: 'hello',
-        );
-        // ignore: unrelated_type_equality_checks for test purposes
-        expect(item == 'VerboseRichTextItem', isFalse);
-      });
-
-      test('hashCode is consistent', () {
-        final item1 = VerboseRichTextItem(
-          text: 'hello',
-        );
-        final item2 = VerboseRichTextItem(
-          text: 'hello',
-        );
-
-        expect(item1.hashCode, equals(item2.hashCode));
-      });
-
-      test('toString works', () {
-        final item = VerboseRichTextItem(
-          text: 'hello',
-        );
-        final str = item.toString();
-        expect(str, contains('VerboseRichTextItem'));
-        expect(str, contains('hello'));
       });
     });
   });

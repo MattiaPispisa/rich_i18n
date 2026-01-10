@@ -126,6 +126,10 @@ Future<List<VerboseRichTextItem>> verboseGetRichText(String text) async {
   return result;
 }
 
+// -----------------------------------------------------------------------------
+// Internal Parsing Logic
+// -----------------------------------------------------------------------------
+
 /// Internal result of parsing an element's style.
 class _ElementParseResult {
   const _ElementParseResult({
@@ -135,25 +139,6 @@ class _ElementParseResult {
 
   final RichTextItem style;
   final RichTextItemDescriptor descriptor;
-}
-
-/// Returns a list of attribute names that are not in the allowed list.
-List<String> _getUnrecognizedAttributes(
-  XmlElement element, {
-  required List<String> allowedAttributes,
-}) {
-  final unrecognized = <String>[];
-  for (final attr in element.attributes) {
-    final attrName = attr.name.local;
-    // Check if it's in the allowed list
-    if (allowedAttributes.contains(attrName)) {
-      continue;
-    }
-
-    // For attributes not explicitly allowed, they are unrecognized
-    unrecognized.add(attrName);
-  }
-  return unrecognized;
 }
 
 /// Recursively parses an XML node and its children.
@@ -207,261 +192,213 @@ void _parseNode(
       );
     }
   }
-  // Other node types (comments, CDATA, etc.) are ignored as they have no
-  // children that need processing
 }
 
-const _colorAttributeName = 'color';
+// -----------------------------------------------------------------------------
+// Tag & Attribute Configuration
+// -----------------------------------------------------------------------------
 
-const _backgroundColorAttributeName = 'background-color';
-const _backgroundColorCssAttributeName = 'backgroundColor';
+// Function typedefs for builders
+// --- Attribute Handlers ---
+RichTextItem _handleColor(RichTextItem s, String v) => s.copyWith(color: v);
+RichTextItem _handleBgColor(RichTextItem s, String v) =>
+    s.copyWith(backgroundColor: v);
+RichTextItem _handleFontWeight(RichTextItem s, String v) {
+  final val = int.tryParse(v);
+  return val != null ? s.copyWith(fontWeight: val) : s;
+}
 
-const _fontWeightAttributeName = 'font-weight';
-const _fontWeightCssAttributeName = 'fontWeight';
+RichTextItem _handleFontSize(RichTextItem s, String v) {
+  final val = double.tryParse(v);
+  return val != null ? s.copyWith(fontSize: val) : s;
+}
 
-const _fontSizeAttributeName = 'font-size';
-const _fontSizeCssAttributeName = 'fontSize';
+RichTextItem _handleFontFamily(RichTextItem s, String v) =>
+    s.copyWith(fontFamily: v);
+RichTextItem _handleTextDecoration(RichTextItem s, String v) =>
+    s.copyWith(textDecoration: v);
+RichTextItem _handleHref(RichTextItem s, String v) => s.copyWith(link: v);
 
-const _fontFamilyAttributeName = 'font-family';
-const _fontFamilyCssAttributeName = 'fontFamily';
+// --- Attribute Registry ---
+final Map<String, RichTextItem Function(RichTextItem current, String value)>
+    _attributeHandlers = {
+  'color': _handleColor,
+  'background-color': _handleBgColor,
+  'backgroundColor': _handleBgColor,
+  'font-weight': _handleFontWeight,
+  'fontWeight': _handleFontWeight,
+  'font-size': _handleFontSize,
+  'fontSize': _handleFontSize,
+  'font-family': _handleFontFamily,
+  'fontFamily': _handleFontFamily,
+  'text-decoration': _handleTextDecoration,
+  'textDecoration': _handleTextDecoration,
+  'href': _handleHref,
+};
 
-const _textDecorationAttributeName = 'text-decoration';
-const _textDecorationCssAttributeName = 'textDecoration';
+// --- Implicit Style Builders ---
+RichTextItem _applyBold(RichTextItem s) =>
+    s.copyWith(fontWeight: kBoldFontWeight);
+RichTextItem _applyUnderline(RichTextItem s) =>
+    s.copyWith(textDecoration: kUnderlineTextDecoration);
+RichTextItem _applyStrike(RichTextItem s) =>
+    s.copyWith(textDecoration: kLineThroughTextDecoration);
 
-const _hrefAttributeName = 'href';
+// --- Tag Configuration Class ---
+class _TagConfig {
+  const _TagConfig({
+    this.implicitBuilder,
+    this.allowedAttributes = const {},
+  });
 
-const List<String> _spanAvailableAttributes = [
-  _colorAttributeName,
-  _backgroundColorAttributeName,
-  _backgroundColorCssAttributeName,
-  _fontWeightAttributeName,
-  _fontWeightCssAttributeName,
-  _fontSizeAttributeName,
-  _fontSizeCssAttributeName,
-  _fontFamilyAttributeName,
-  _fontFamilyCssAttributeName,
-  _textDecorationAttributeName,
-  _textDecorationCssAttributeName,
-  _hrefAttributeName,
-];
+  /// Optional builder to apply the tag's implicit style (e.g. bold for <b>)
+  final RichTextItem Function(RichTextItem current)? implicitBuilder;
 
-const List<String> _aAvailableAttributes = [
-  _hrefAttributeName,
-];
+  /// Set of allowed attribute names for this tag
+  final Set<String> allowedAttributes;
+}
+
+// --- Common Attribute Sets ---
+const _spanAttributes = {
+  'color',
+  'background-color',
+  'backgroundColor',
+  'font-weight',
+  'fontWeight',
+  'font-size',
+  'fontSize',
+  'font-family',
+  'fontFamily',
+  'text-decoration',
+  'textDecoration',
+  'href',
+};
+
+const _linkAttributes = {'href'};
+
+// --- Tag Registry ---
+final Map<String, _TagConfig> _tagConfigs = {
+  'root': const _TagConfig(),
+
+  // Bold variants
+  'b': const _TagConfig(implicitBuilder: _applyBold),
+  'bold': const _TagConfig(implicitBuilder: _applyBold),
+  'strong': const _TagConfig(implicitBuilder: _applyBold),
+
+  // Underline variants
+  'u': const _TagConfig(implicitBuilder: _applyUnderline),
+  'underline': const _TagConfig(implicitBuilder: _applyUnderline),
+
+  // Strike variants
+  's': const _TagConfig(implicitBuilder: _applyStrike),
+  'strike': const _TagConfig(implicitBuilder: _applyStrike),
+  'strikethrough': const _TagConfig(implicitBuilder: _applyStrike),
+  'del': const _TagConfig(implicitBuilder: _applyStrike),
+
+  // Link
+  'a': const _TagConfig(allowedAttributes: _linkAttributes),
+
+  // Span / Font
+  'span': const _TagConfig(allowedAttributes: _spanAttributes),
+  'font': const _TagConfig(allowedAttributes: _spanAttributes),
+
+  // Italic (Placeholder: currently no style applied)
+  'i': const _TagConfig(),
+  'italic': const _TagConfig(),
+  'em': const _TagConfig(),
+};
 
 /// Returns the updated style and descriptor based on the XML element.
+///
+/// This method uses a data-driven approach via [_tagConfigs]
+/// and [_attributeHandlers].
+/// It is optimized to exit early when [verbose] is false, avoiding unnecessary
+/// iteration or allocation.
 _ElementParseResult _getStyleForElement(
   XmlElement element,
   RichTextItem currentStyle, {
   bool verbose = false,
 }) {
   final tagName = element.name.local.toLowerCase();
+  final config = _tagConfigs[tagName];
 
-  switch (tagName) {
-    case 'root':
+  // --- Case 1: Unknown Tag ---
+  if (config == null) {
+    if (!verbose) {
+      // Optimization: If not verbose, ignore unknown tags immediately
       return _ElementParseResult(
         style: currentStyle,
         descriptor: RichTextItemDescriptor.empty,
       );
+    }
 
-    case 'b':
-    case 'bold':
-    case 'strong':
-      if (verbose) {
-        final unrecognized =
-            _getUnrecognizedAttributes(element, allowedAttributes: const []);
-        return _ElementParseResult(
-          style: currentStyle.copyWith(fontWeight: kBoldFontWeight),
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style: currentStyle.copyWith(fontWeight: kBoldFontWeight),
-        descriptor: RichTextItemDescriptor.empty,
-      );
+    // In verbose mode, collect all attributes as unrecognized
+    final unrecognizedAttrs =
+        element.attributes.map((attr) => attr.name.local).toList();
 
-    case 'u':
-    case 'underline':
-      if (verbose) {
-        final unrecognized =
-            _getUnrecognizedAttributes(element, allowedAttributes: const []);
-        return _ElementParseResult(
-          style:
-              currentStyle.copyWith(textDecoration: kUnderlineTextDecoration),
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style: currentStyle.copyWith(textDecoration: kUnderlineTextDecoration),
-        descriptor: RichTextItemDescriptor.empty,
-      );
-
-    case 's':
-    case 'strike':
-    case 'strikethrough':
-    case 'del':
-      if (verbose) {
-        final unrecognized =
-            _getUnrecognizedAttributes(element, allowedAttributes: const []);
-        return _ElementParseResult(
-          style:
-              currentStyle.copyWith(textDecoration: kLineThroughTextDecoration),
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style:
-            currentStyle.copyWith(textDecoration: kLineThroughTextDecoration),
-        descriptor: RichTextItemDescriptor.empty,
-      );
-
-    case 'a':
-      final href = element.getAttribute(_hrefAttributeName);
-      final newStyle =
-          href != null ? currentStyle.copyWith(link: href) : currentStyle;
-      if (verbose) {
-        final unrecognized = _getUnrecognizedAttributes(
-          element,
-          allowedAttributes: _aAvailableAttributes,
-        );
-        return _ElementParseResult(
-          style: newStyle,
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style: newStyle,
-        descriptor: RichTextItemDescriptor.empty,
-      );
-
-    case 'span':
-    case 'font':
-      final newStyle = _parseSpanAttributes(element, currentStyle);
-      if (verbose) {
-        final unrecognized = _getUnrecognizedAttributes(
-          element,
-          allowedAttributes: _spanAvailableAttributes,
-        );
-        return _ElementParseResult(
-          style: newStyle,
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style: newStyle,
-        descriptor: RichTextItemDescriptor.empty,
-      );
-
-    case 'i':
-    case 'italic':
-    case 'em':
-      // For italic, we can use font-style, but since we don't have that
-      // property, we'll skip or you could add it later
-      if (verbose) {
-        final unrecognized = _getUnrecognizedAttributes(
-          element,
-          allowedAttributes: const [],
-        );
-        return _ElementParseResult(
-          style: currentStyle,
-          descriptor:
-              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
-        );
-      }
-      return _ElementParseResult(
-        style: currentStyle,
-        descriptor: RichTextItemDescriptor.empty,
-      );
-
-    default:
-      // Unknown tags are treated as containers without style changes
-      if (verbose) {
-        final unrecognized = _getUnrecognizedAttributes(
-          element,
-          allowedAttributes: const [],
-        );
-        return _ElementParseResult(
-          style: currentStyle,
-          descriptor: RichTextItemDescriptor(
-            unrecognizedTag: tagName,
-            unrecognizedAttributes: unrecognized,
-          ),
-        );
-      }
-      return _ElementParseResult(
-        style: currentStyle,
-        descriptor: RichTextItemDescriptor.empty,
-      );
-  }
-}
-
-/// Parses span/font element attributes and returns the updated style.
-RichTextItem _parseSpanAttributes(
-  XmlElement element,
-  RichTextItem currentStyle,
-) {
-  var newStyle = currentStyle;
-
-  // Parse color attribute
-  final color = element.getAttribute(_colorAttributeName);
-  if (color != null) {
-    newStyle = newStyle.copyWith(color: color);
+    return _ElementParseResult(
+      style: currentStyle,
+      descriptor: RichTextItemDescriptor(
+        unrecognizedTag: tagName,
+        unrecognizedAttributes: unrecognizedAttrs,
+      ),
+    );
   }
 
-  // Parse background-color attribute
-  final backgroundColor = element.getAttribute(_backgroundColorAttributeName) ??
-      element.getAttribute(_backgroundColorCssAttributeName);
-  if (backgroundColor != null) {
-    newStyle = newStyle.copyWith(backgroundColor: backgroundColor);
+  // --- Case 2: Known Tag ---
+
+  // A. Apply implicit style (e.g., Bold)
+  var nextStyle = currentStyle;
+  if (config.implicitBuilder != null) {
+    nextStyle = config.implicitBuilder!(nextStyle);
   }
 
-  // Parse font-weight attribute
-  final fontWeightStr = element.getAttribute(_fontWeightAttributeName) ??
-      element.getAttribute(_fontWeightCssAttributeName);
-  if (fontWeightStr != null) {
-    final fontWeight = int.tryParse(fontWeightStr);
-    if (fontWeight != null) {
-      newStyle = newStyle.copyWith(fontWeight: fontWeight);
+  // B. Process Attributes (Optimized)
+
+  // If the tag does not allow attributes (e.g., <b>)
+  // and we are not in verbose mode,
+  // we exit immediately to avoid the cost of iterating over attributes.
+  if (config.allowedAttributes.isEmpty && !verbose) {
+    return _ElementParseResult(
+      style: nextStyle,
+      descriptor: RichTextItemDescriptor.empty,
+    );
+  }
+
+  List<String>? unrecognizedAttrs;
+  if (verbose) {
+    unrecognizedAttrs = [];
+  }
+
+  // Iterate over attributes
+  for (final attr in element.attributes) {
+    final attrName = attr.name.local;
+
+    // Check if the attribute is allowed for this specific tag
+    if (config.allowedAttributes.contains(attrName)) {
+      final attrValue = attr.value;
+      final handler = _attributeHandlers[attrName];
+      if (handler != null) {
+        nextStyle = handler(nextStyle, attrValue);
+      }
+    } else if (verbose) {
+      // Logic executed only if verbose is true
+      unrecognizedAttrs!.add(attrName);
     }
   }
 
-  // Parse font-size attribute
-  final fontSizeStr = element.getAttribute(_fontSizeAttributeName) ??
-      element.getAttribute(_fontSizeCssAttributeName);
-  if (fontSizeStr != null) {
-    final fontSize = double.tryParse(fontSizeStr);
-    if (fontSize != null) {
-      newStyle = newStyle.copyWith(fontSize: fontSize);
-    }
-  }
-
-  // Parse font-family attribute
-  final fontFamily = element.getAttribute(_fontFamilyAttributeName) ??
-      element.getAttribute(_fontFamilyCssAttributeName);
-  if (fontFamily != null) {
-    newStyle = newStyle.copyWith(fontFamily: fontFamily);
-  }
-
-  // Parse text-decoration attribute
-  final textDecoration = element.getAttribute(_textDecorationAttributeName) ??
-      element.getAttribute(_textDecorationCssAttributeName);
-  if (textDecoration != null) {
-    newStyle = newStyle.copyWith(textDecoration: textDecoration);
-  }
-
-  // Parse href attribute (for links in span)
-  final href = element.getAttribute(_hrefAttributeName);
-  if (href != null) {
-    newStyle = newStyle.copyWith(link: href);
-  }
-
-  return newStyle;
+  return _ElementParseResult(
+    style: nextStyle,
+    descriptor:
+        (verbose && unrecognizedAttrs != null && unrecognizedAttrs.isNotEmpty)
+            ? RichTextItemDescriptor(unrecognizedAttributes: unrecognizedAttrs)
+            : RichTextItemDescriptor.empty,
+  );
 }
+
+// -----------------------------------------------------------------------------
+// Helper Methods
+// -----------------------------------------------------------------------------
 
 /// Adds text with the given style to the result list.
 ///
