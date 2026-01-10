@@ -1,5 +1,7 @@
 // ignore_for_file: avoid_print just for example purposes
 
+import 'dart:async';
+
 import 'package:rich_i18n/rich_i18n.dart';
 
 void main() async {
@@ -9,7 +11,7 @@ void main() async {
   print('');
 
   // Example 1: Basic text parsing with bold tag
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 1: Basic bold text',
     body: () {
       final basicItems = tryGetRichTextSync('Hello <b>World</b>!');
@@ -24,7 +26,7 @@ void main() async {
   );
 
   // Example 2: Nested tags
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 2: Nested tags (bold and underline)',
     body: () {
       final nestedItems = tryGetRichTextSync(
@@ -41,7 +43,7 @@ void main() async {
   );
 
   // Example 3: Multiple text styles
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 3: Multiple text styles',
     body: () {
       final stylesItems = tryGetRichTextSync(
@@ -64,7 +66,7 @@ void main() async {
   );
 
   // Example 4: Span with attributes (color, font size, etc.)
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 4: Span with attributes',
     body: () {
       final spanItems = tryGetRichTextSync(
@@ -82,7 +84,7 @@ void main() async {
     },
   );
   // Example 5: Background color and font family
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 5: Background color and font family',
     body: () {
       final styledItems = tryGetRichTextSync(
@@ -99,7 +101,7 @@ void main() async {
     },
   );
   // Example 6: Links
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 6: Hyperlinks',
     body: () {
       final linkItems = tryGetRichTextSync(
@@ -115,7 +117,7 @@ void main() async {
   );
 
   // Example 7: Complex nested structure
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 7: Complex nested structure',
     body: () {
       final complexItems = tryGetRichTextSync(
@@ -136,7 +138,7 @@ void main() async {
   );
 
   // Example 8: Error handling with tryGetRichTextSync (returns null)
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 8: Error handling (invalid XML)',
     body: () {
       final invalidItems = tryGetRichTextSync('Invalid <b>unclosed tag');
@@ -147,7 +149,7 @@ void main() async {
   );
 
   // Example 9: Verbose mode with error reporting
-  await _sectionPrintLayoutAsync(
+  await _sectionPrintLayout(
     title: 'Example 9: Verbose mode (with descriptors)',
     body: () async {
       try {
@@ -178,7 +180,7 @@ void main() async {
   );
 
   // Example 10: Empty tags are ignored (merged)
-  _sectionPrintLayout(
+  await _sectionPrintLayout(
     title: 'Example 10: Consecutive same-style segments are merged',
     body: () {
       final mergedItems = tryGetRichTextSync('<b>hello</b><b> world</b>');
@@ -197,22 +199,12 @@ void main() async {
   print('=' * 60);
 }
 
-void _sectionPrintLayout({
+Future<void> _sectionPrintLayout({
   required String title,
-  void Function()? body,
-}) {
-  print(title);
-  print('-' * 60);
-  body?.call();
-  print('');
-}
-
-Future<void> _sectionPrintLayoutAsync({
-  required String title,
-  required Future<void> Function() body,
+  FutureOr<void> Function()? body,
 }) async {
   print(title);
   print('-' * 60);
-  await body();
+  await body?.call();
   print('');
 }
