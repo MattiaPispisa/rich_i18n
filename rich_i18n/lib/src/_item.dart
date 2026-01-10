@@ -9,6 +9,9 @@ const String kUnderlineTextDecoration = 'underline';
 /// The text decoration value that represents line through text.
 const String kLineThroughTextDecoration = 'lineThrough';
 
+/// The font style value that represents italic text.
+const String kItalicFontStyle = 'italic';
+
 /// Represents a segment of rich text with styling properties.
 ///
 /// Each [RichTextItem] contains text and optional styling attributes
@@ -37,10 +40,12 @@ class RichTextItem {
     this.fontWeight,
     this.fontSize,
     this.fontFamily,
+    this.fontStyle,
     this.textDecoration,
   }) : _cachedHashCode = _computeHashCode(
           text: text,
           color: color,
+          fontStyle: fontStyle,
           link: link,
           backgroundColor: backgroundColor,
           fontWeight: fontWeight,
@@ -72,6 +77,12 @@ class RichTextItem {
   /// The font family name.
   final String? fontFamily;
 
+  /// The font style.
+  ///
+  /// Currently supported are:
+  /// - [kItalicFontStyle]
+  final String? fontStyle;
+
   /// The text decoration.
   ///
   /// Currently supported are:
@@ -90,16 +101,18 @@ class RichTextItem {
   /// Computes the hash code based on all properties.
   static int _computeHashCode({
     required String text,
-    String? color,
-    String? link,
-    String? backgroundColor,
-    int? fontWeight,
-    double? fontSize,
-    String? fontFamily,
-    String? textDecoration,
+    required String? fontStyle,
+    required String? color,
+    required String? link,
+    required String? backgroundColor,
+    required int? fontWeight,
+    required double? fontSize,
+    required String? fontFamily,
+    required String? textDecoration,
   }) {
     return Object.hash(
       text,
+      fontStyle,
       color,
       link,
       backgroundColor,
@@ -135,6 +148,7 @@ class RichTextItem {
         'fontWeight: $fontWeight, '
         'fontSize: $fontSize, '
         'fontFamily: $fontFamily, '
+        'fontStyle: $fontStyle, '
         'textDecoration: $textDecoration)';
   }
 
@@ -150,6 +164,7 @@ class RichTextItem {
     double? fontSize,
     String? fontFamily,
     String? textDecoration,
+    String? fontStyle,
   }) {
     return RichTextItem(
       text: text ?? this.text,
@@ -160,6 +175,7 @@ class RichTextItem {
       fontSize: fontSize ?? this.fontSize,
       fontFamily: fontFamily ?? this.fontFamily,
       textDecoration: textDecoration ?? this.textDecoration,
+      fontStyle: fontStyle ?? this.fontStyle,
     );
   }
 
@@ -172,6 +188,7 @@ class RichTextItem {
         fontWeight == other.fontWeight &&
         fontSize == other.fontSize &&
         fontFamily == other.fontFamily &&
+        fontStyle == other.fontStyle &&
         textDecoration == other.textDecoration;
   }
 }

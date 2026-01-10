@@ -9,6 +9,7 @@ import 'package:xml/xml.dart';
 /// - `<b>` or `<bold>`: Bold text
 /// - `<u>` or `<underline>`: Underlined text
 /// - `<s>` or `<strike>` or `<strikethrough>`: Strikethrough text
+/// - `<i>` or `<italic>`: Italic text
 /// - `<a href="url">`: Hyperlink
 /// - `<span>` with attributes:
 ///   - `color`: Text color (e.g., "#FF0000" or "red")
@@ -17,6 +18,7 @@ import 'package:xml/xml.dart';
 ///   - `font-weight`|`fontWeight`: Font weight (e.g., "700")
 ///   - `font-size`|`fontSize`: Font size (e.g., "14")
 ///   - `font-family`|`fontFamily`: Font family name
+///   - `font-style`|`fontStyle`: Font style ([kItalicFontStyle])
 ///   - `text-decoration`|`textDecoration`:
 /// Text decoration ([kUnderlineTextDecoration], [kLineThroughTextDecoration])
 /// {@endtemplate}
@@ -215,8 +217,28 @@ RichTextItem _handleFontSize(RichTextItem s, String v) {
 
 RichTextItem _handleFontFamily(RichTextItem s, String v) =>
     s.copyWith(fontFamily: v);
-RichTextItem _handleTextDecoration(RichTextItem s, String v) =>
-    s.copyWith(textDecoration: v);
+
+const Set<String> _supportedTextDecorations = {
+  kUnderlineTextDecoration,
+  kLineThroughTextDecoration,
+};
+RichTextItem _handleTextDecoration(RichTextItem s, String v) {
+  if (_supportedTextDecorations.contains(v)) {
+    return s.copyWith(textDecoration: v);
+  }
+  return s;
+}
+
+const Set<String> _supportedFontStyles = {
+  kItalicFontStyle,
+};
+RichTextItem _handleFontStyle(RichTextItem s, String v) {
+  if (_supportedFontStyles.contains(v)) {
+    return s.copyWith(fontStyle: v);
+  }
+  return s;
+}
+
 RichTextItem _handleHref(RichTextItem s, String v) => s.copyWith(link: v);
 
 // --- Attribute Registry ---
@@ -231,6 +253,8 @@ final Map<String, RichTextItem Function(RichTextItem current, String value)>
   'fontSize': _handleFontSize,
   'font-family': _handleFontFamily,
   'fontFamily': _handleFontFamily,
+  'font-style': _handleFontStyle,
+  'fontStyle': _handleFontStyle,
   'text-decoration': _handleTextDecoration,
   'textDecoration': _handleTextDecoration,
   'href': _handleHref,
@@ -243,6 +267,8 @@ RichTextItem _applyUnderline(RichTextItem s) =>
     s.copyWith(textDecoration: kUnderlineTextDecoration);
 RichTextItem _applyStrike(RichTextItem s) =>
     s.copyWith(textDecoration: kLineThroughTextDecoration);
+RichTextItem _applyItalic(RichTextItem s) =>
+    s.copyWith(fontStyle: kItalicFontStyle);
 
 // --- Tag Configuration Class ---
 class _TagConfig {
@@ -269,6 +295,8 @@ const _spanAttributes = {
   'fontSize',
   'font-family',
   'fontFamily',
+  'font-style',
+  'fontStyle',
   'text-decoration',
   'textDecoration',
   'href',
@@ -303,9 +331,9 @@ final Map<String, _TagConfig> _tagConfigs = {
   'font': const _TagConfig(allowedAttributes: _spanAttributes),
 
   // Italic (Placeholder: currently no style applied)
-  'i': const _TagConfig(),
-  'italic': const _TagConfig(),
-  'em': const _TagConfig(),
+  'i': const _TagConfig(implicitBuilder: _applyItalic),
+  'italic': const _TagConfig(implicitBuilder: _applyItalic),
+  'em': const _TagConfig(implicitBuilder: _applyItalic),
 };
 
 /// Returns the updated style and descriptor based on the XML element.
@@ -365,11 +393,9 @@ _ElementParseResult _getStyleForElement(
     );
   }
 
-  List<String>? unrecognizedAttrs;
-  if (verbose) {
-    unrecognizedAttrs = [];
-  }
+  final unrecognizedAttrs = <String>[];
 
+  // TODO(mattia): heavy, only if verbose is true
   // Iterate over attributes
   for (final attr in element.attributes) {
     final attrName = attr.name.local;
@@ -383,16 +409,15 @@ _ElementParseResult _getStyleForElement(
       }
     } else if (verbose) {
       // Logic executed only if verbose is true
-      unrecognizedAttrs!.add(attrName);
+      unrecognizedAttrs.add(attrName);
     }
   }
 
   return _ElementParseResult(
     style: nextStyle,
-    descriptor:
-        (verbose && unrecognizedAttrs != null && unrecognizedAttrs.isNotEmpty)
-            ? RichTextItemDescriptor(unrecognizedAttributes: unrecognizedAttrs)
-            : RichTextItemDescriptor.empty,
+    descriptor: (verbose && unrecognizedAttrs.isNotEmpty)
+        ? RichTextItemDescriptor(unrecognizedAttributes: unrecognizedAttrs)
+        : RichTextItemDescriptor.empty,
   );
 }
 

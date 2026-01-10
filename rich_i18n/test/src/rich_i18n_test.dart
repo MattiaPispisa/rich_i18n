@@ -409,6 +409,17 @@ void main() {
         expect(result[0].fontFamily, equals('Roboto'));
       });
 
+      test('font-style attribute', () {
+        final result = tryGetRichTextSync(
+          '<span font-style="italic">styled</span>',
+        );
+
+        expect(result, isNotNull);
+        expect(result, hasLength(1));
+        expect(result![0].text, equals('styled'));
+        expect(result[0].fontStyle, equals(kItalicFontStyle));
+      });
+
       test('span with text-decoration attribute', () {
         final result = tryGetRichTextSync(
           '<span text-decoration="underline">decorated</span>',
@@ -540,12 +551,19 @@ void main() {
         expect(result[0].textDecoration, equals(kLineThroughTextDecoration));
       });
 
-      test('italic tags are parsed but have no effect', () {
+      test('italic tags are parsed', () {
         final result = tryGetRichTextSync('normal <i>italic</i> text');
 
         expect(result, isNotNull);
-        expect(result, hasLength(1));
-        expect(result![0].text, equals('normal italic text'));
+        expect(result, hasLength(3));
+        expect(result![0].text, equals('normal '));
+        expect(result[0].fontStyle, isNull);
+
+        expect(result[1].text, equals('italic'));
+        expect(result[1].fontStyle, equals(kItalicFontStyle));
+
+        expect(result[2].text, equals(' text'));
+        expect(result[2].fontStyle, isNull);
       });
 
       test('italic tag alias works', () {
@@ -555,10 +573,12 @@ void main() {
         expect(result1, isNotNull);
         expect(result1, hasLength(1));
         expect(result1![0].text, equals('text'));
+        expect(result1[0].fontStyle, equals(kItalicFontStyle));
 
         expect(result2, isNotNull);
         expect(result2, hasLength(1));
         expect(result2![0].text, equals('text'));
+        expect(result2[0].fontStyle, equals(kItalicFontStyle));
       });
     });
 
