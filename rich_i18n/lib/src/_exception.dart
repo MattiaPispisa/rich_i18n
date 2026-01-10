@@ -3,7 +3,8 @@
 /// This exception wraps the underlying XML parsing errors and provides
 /// a user-friendly message describing the parsing failure.
 class RichTextException implements Exception {
-  /// Creates a new [RichTextException] with the given message and optional cause.
+  /// Creates a new [RichTextException]
+  /// with the given message and optional cause.
   const RichTextException(this.message, {this.cause});
 
   /// A description of the parsing error.
