@@ -1,3 +1,12 @@
+## [0.1.2](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n-v0.1.2/rich_i18n)
+
+[compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n-v0.1.1...rich_i18n-v0.1.2)
+
+**Date:** 2026-01-10
+
+### Changed
+- chore: improved `flutter_example` for pana checks.
+
 ## [0.1.1](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n-v0.1.1/rich_i18n)
 
 [compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n-v0.1.0...rich_i18n-v0.1.1)
