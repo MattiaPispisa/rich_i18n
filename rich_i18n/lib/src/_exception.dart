@@ -20,4 +20,3 @@ class RichTextException implements Exception {
     return 'RichTextException: $message';
   }
 }
-
