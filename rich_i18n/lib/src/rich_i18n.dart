@@ -6,12 +6,12 @@ import 'package:xml/xml.dart';
 ///
 /// {@template rich_i18n_supported_tags}
 /// Supported XML tags (HTML-like):
-/// - `<b>` or `<bold>`: Bold text
+/// - `<b>` or `<bold>` or `<strong>`: Bold text
 /// - `<u>` or `<underline>`: Underlined text
-/// - `<s>` or `<strike>` or `<strikethrough>`: Strikethrough text
-/// - `<i>` or `<italic>`: Italic text
+/// - `<s>` or `<strike>` or `<strikethrough>` or `<del>`: Strikethrough text
+/// - `<i>` or `<italic>` or `<em>`: Italic text
 /// - `<a href="url">`: Hyperlink
-/// - `<span>` with attributes:
+/// - `<span>` or `<font>` with attributes:
 ///   - `color`: Text color (e.g., "#FF0000" or "red")
 ///   - `href`: Link URL
 ///   - `background-color`|`backgroundColor`: Background color
