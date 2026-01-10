@@ -1,4 +1,4 @@
-import 'rich_text_item.dart';
+import 'package:rich_i18n/rich_i18n.dart';
 import 'package:xml/xml.dart';
 
 /// Parses a rich text string with XML tags
@@ -12,6 +12,7 @@ import 'package:xml/xml.dart';
 /// - `<a href="url">`: Hyperlink
 /// - `<span>` with attributes:
 ///   - `color`: Text color (e.g., "#FF0000" or "red")
+///   - `href`: Link URL
 ///   - `background-color`|`backgroundColor`: Background color
 ///   - `font-weight`|`fontWeight`: Font weight (e.g., "700")
 ///   - `font-size`|`fontSize`: Font size (e.g., "14")
@@ -55,27 +56,155 @@ List<RichTextItem>? tryGetRichTextSync(String text) {
   final result = <RichTextItem>[];
   final initialStyle = RichTextItem(text: '');
 
-  _parseNode(document.rootElement, initialStyle, result);
+  _parseNode(
+    document.rootElement,
+    initialStyle,
+    RichTextItemDescriptor.empty,
+    result,
+  );
 
   return result;
 }
 
+/// Parses a rich text string with XML tags and returns a list of
+/// [VerboseRichTextItem] containing both the parsed items and descriptors.
+///
+/// Unlike [tryGetRichTextSync], this method:
+/// - Throws [RichTextException] if the XML parsing fails
+/// - Returns descriptors for each item indicating any unrecognized tags
+///   or attributes
+///
+/// {@macro rich_i18n_supported_tags}
+///
+/// Example:
+/// ```dart
+/// // Valid XML with unrecognized tag
+/// final result = verboseGetRichTextSync('<hi>hello</hi>');
+/// // result[0].descriptor.unrecognizedTag == 'hi'
+///
+/// // Valid XML with unrecognized attribute
+/// final result = verboseGetRichTextSync('<bold color="red">hello</bold>');
+/// // result[0].descriptor.unrecognizedAttributes == ['color']
+///
+/// // Invalid XML throws exception
+/// verboseGetRichTextSync('<bold>hello'); // throws RichTextException
+/// ```
+Future<List<VerboseRichTextItem>> verboseGetRichText(String text) async {
+  if (text.isEmpty) {
+    return [];
+  }
+
+  // Wrap the text in a root element to ensure valid XML
+  final wrappedText = '<root>$text</root>';
+
+  XmlDocument document;
+  try {
+    document = XmlDocument.parse(wrappedText);
+  } on XmlParserException catch (e) {
+    throw RichTextException(
+      'Failed to parse XML: ${e.message}',
+      cause: e,
+    );
+  } on XmlTagException catch (e) {
+    throw RichTextException(
+      'Invalid XML tag: ${e.message}',
+      cause: e,
+    );
+  }
+
+  final result = <VerboseRichTextItem>[];
+  final initialStyle = RichTextItem(text: '');
+
+  _parseNode(
+    document.rootElement,
+    initialStyle,
+    RichTextItemDescriptor.empty,
+    result,
+    verbose: true,
+  );
+
+  return result;
+}
+
+/// Internal result of parsing an element's style.
+class _ElementParseResult {
+  const _ElementParseResult({
+    required this.style,
+    required this.descriptor,
+  });
+
+  final RichTextItem style;
+  final RichTextItemDescriptor descriptor;
+}
+
+/// Returns a list of attribute names that are not in the allowed list.
+List<String> _getUnrecognizedAttributes(
+  XmlElement element, {
+  required List<String> allowedAttributes,
+}) {
+  final unrecognized = <String>[];
+  for (final attr in element.attributes) {
+    final attrName = attr.name.local;
+    // Check if it's in the allowed list
+    if (allowedAttributes.contains(attrName)) {
+      continue;
+    }
+
+    // For attributes not explicitly allowed, they are unrecognized
+    unrecognized.add(attrName);
+  }
+  return unrecognized;
+}
+
 /// Recursively parses an XML node and its children.
+///
+/// If [verbose] is true, works with [List<VerboseRichTextItem>] and
+/// includes descriptor information. Otherwise, works with [List<RichTextItem>].
 void _parseNode(
   XmlNode node,
   RichTextItem currentStyle,
-  List<RichTextItem> result,
-) {
+  RichTextItemDescriptor currentDescriptor,
+  List<RichTextItem> result, {
+  bool verbose = false,
+}) {
   if (node is XmlText) {
     final text = node.value;
     if (text.isNotEmpty) {
-      _addTextWithStyle(text, currentStyle, result);
+      if (verbose) {
+        _addTextWithStyleVerbose(
+          text,
+          currentStyle,
+          currentDescriptor,
+          result as List<VerboseRichTextItem>,
+        );
+      } else {
+        _addTextWithStyle(text, currentStyle, result);
+      }
     }
   } else if (node is XmlElement) {
-    final newStyle = _getStyleForElement(node, currentStyle);
+    final parseResult =
+        _getStyleForElement(node, currentStyle, verbose: verbose);
+
+    // Merge descriptors if verbose
+    var mergedDescriptor = RichTextItemDescriptor.empty;
+    if (verbose) {
+      mergedDescriptor = RichTextItemDescriptor(
+        unrecognizedTag: parseResult.descriptor.unrecognizedTag,
+        unrecognizedAttributes: [
+          ...currentDescriptor.unrecognizedAttributes,
+          ...parseResult.descriptor.unrecognizedAttributes,
+        ],
+      );
+    }
 
     for (final child in node.children) {
-      _parseNode(child, newStyle, result);
+      _parseNode(
+        child,
+        parseResult.style,
+        mergedDescriptor,
+        result,
+        verbose: verbose,
+      );
     }
   }
   // Other node types (comments, CDATA, etc.) are ignored as they have no
@@ -104,10 +233,15 @@ const _hrefAttributeName = 'href';
 const List<String> _spanAvailableAttributes = [
   _colorAttributeName,
   _backgroundColorAttributeName,
+  _backgroundColorCssAttributeName,
   _fontWeightAttributeName,
+  _fontWeightCssAttributeName,
   _fontSizeAttributeName,
+  _fontSizeCssAttributeName,
   _fontFamilyAttributeName,
+  _fontFamilyCssAttributeName,
   _textDecorationAttributeName,
+  _textDecorationCssAttributeName,
   _hrefAttributeName,
 ];
 
@@ -115,72 +249,154 @@ const List<String> _aAvailableAttributes = [
   _hrefAttributeName,
 ];
 
-const List<String> _tagAvailables = [
-  'span',
-  'a',
-  'font',
-  'i',
-  'italic',
-  'em',
-  'b',
-  'bold',
-  'strong',
-  'u',
-  'underline',
-  's',
-  'strike',
-  'strikethrough',
-  'del',
-];
-
-/// Returns the updated style based on the XML element.
-RichTextItem _getStyleForElement(
+/// Returns the updated style and descriptor based on the XML element.
+_ElementParseResult _getStyleForElement(
   XmlElement element,
-  RichTextItem currentStyle,
-) {
+  RichTextItem currentStyle, {
+  bool verbose = false,
+}) {
   final tagName = element.name.local.toLowerCase();
 
   switch (tagName) {
     case 'root':
-      // Root element doesn't add any style
-      return currentStyle;
+      return _ElementParseResult(
+        style: currentStyle,
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 'b':
     case 'bold':
     case 'strong':
-      return currentStyle.copyWith(fontWeight: kBoldFontWeight);
+      if (verbose) {
+        final unrecognized =
+            _getUnrecognizedAttributes(element, allowedAttributes: const []);
+        return _ElementParseResult(
+          style: currentStyle.copyWith(fontWeight: kBoldFontWeight),
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
+      }
+      return _ElementParseResult(
+        style: currentStyle.copyWith(fontWeight: kBoldFontWeight),
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 'u':
     case 'underline':
-      return currentStyle.copyWith(textDecoration: kUnderlineTextDecoration);
+      if (verbose) {
+        final unrecognized =
+            _getUnrecognizedAttributes(element, allowedAttributes: const []);
+        return _ElementParseResult(
+          style:
+              currentStyle.copyWith(textDecoration: kUnderlineTextDecoration),
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
+      }
+      return _ElementParseResult(
+        style: currentStyle.copyWith(textDecoration: kUnderlineTextDecoration),
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 's':
     case 'strike':
     case 'strikethrough':
     case 'del':
-      return currentStyle.copyWith(textDecoration: kLineThroughTextDecoration);
+      if (verbose) {
+        final unrecognized =
+            _getUnrecognizedAttributes(element, allowedAttributes: const []);
+        return _ElementParseResult(
+          style:
+              currentStyle.copyWith(textDecoration: kLineThroughTextDecoration),
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
+      }
+      return _ElementParseResult(
+        style:
+            currentStyle.copyWith(textDecoration: kLineThroughTextDecoration),
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 'a':
       final href = element.getAttribute(_hrefAttributeName);
-      if (href != null) {
-        return currentStyle.copyWith(link: href);
+      final newStyle =
+          href != null ? currentStyle.copyWith(link: href) : currentStyle;
+      if (verbose) {
+        final unrecognized = _getUnrecognizedAttributes(
+          element,
+          allowedAttributes: _aAvailableAttributes,
+        );
+        return _ElementParseResult(
+          style: newStyle,
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
       }
-      return currentStyle;
+      return _ElementParseResult(
+        style: newStyle,
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 'span':
     case 'font':
-      return _parseSpanAttributes(element, currentStyle);
+      final newStyle = _parseSpanAttributes(element, currentStyle);
+      if (verbose) {
+        final unrecognized = _getUnrecognizedAttributes(
+          element,
+          allowedAttributes: _spanAvailableAttributes,
+        );
+        return _ElementParseResult(
+          style: newStyle,
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
+      }
+      return _ElementParseResult(
+        style: newStyle,
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     case 'i':
     case 'italic':
     case 'em':
       // For italic, we can use font-style, but since we don't have that
       // property, we'll skip or you could add it later
-      return currentStyle;
+      if (verbose) {
+        final unrecognized = _getUnrecognizedAttributes(
+          element,
+          allowedAttributes: const [],
+        );
+        return _ElementParseResult(
+          style: currentStyle,
+          descriptor:
+              RichTextItemDescriptor(unrecognizedAttributes: unrecognized),
+        );
+      }
+      return _ElementParseResult(
+        style: currentStyle,
+        descriptor: RichTextItemDescriptor.empty,
+      );
 
     default:
       // Unknown tags are treated as containers without style changes
-      return currentStyle;
+      if (verbose) {
+        final unrecognized = _getUnrecognizedAttributes(
+          element,
+          allowedAttributes: const [],
+        );
+        return _ElementParseResult(
+          style: currentStyle,
+          descriptor: RichTextItemDescriptor(
+            unrecognizedTag: tagName,
+            unrecognizedAttributes: unrecognized,
+          ),
+        );
+      }
+      return _ElementParseResult(
+        style: currentStyle,
+        descriptor: RichTextItemDescriptor.empty,
+      );
   }
 }
 
@@ -277,5 +493,52 @@ void _addTextWithStyle(
       ..add(lastItem.copyWith(text: lastItem.text + text));
   } else {
     result.add(newItem);
+  }
+}
+
+/// Adds text with the given style and descriptor
+/// to the result list in verbose mode.
+void _addTextWithStyleVerbose(
+  String text,
+  RichTextItem style,
+  RichTextItemDescriptor descriptor,
+  List<VerboseRichTextItem> result,
+) {
+  if (text.isEmpty) {
+    return;
+  }
+
+  final newItem = style.copyWith(text: text);
+
+  if (result.isEmpty) {
+    result.add(
+      VerboseRichTextItem.fromItem(
+        item: newItem,
+        descriptor: descriptor,
+      ),
+    );
+    return;
+  }
+
+  final lastResult = result.last;
+
+  // Check if the new item has the same style AND descriptor as the last one
+  if (lastResult.hasSameStyle(newItem) && lastResult.descriptor == descriptor) {
+    // Merge text with the last item
+    result
+      ..removeLast()
+      ..add(
+        VerboseRichTextItem.fromItem(
+          item: lastResult.copyWith(text: lastResult.text + text),
+          descriptor: descriptor,
+        ),
+      );
+  } else {
+    result.add(
+      VerboseRichTextItem.fromItem(
+        item: newItem,
+        descriptor: descriptor,
+      ),
+    );
   }
 }

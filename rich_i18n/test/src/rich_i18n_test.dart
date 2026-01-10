@@ -1,4 +1,4 @@
-import '../../lib/rich_i18n.dart';
+import 'package:rich_i18n/rich_i18n.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -486,6 +486,361 @@ void main() {
         expect(result[0].fontSize, equals(14.0));
         expect(result[0].fontFamily, equals('Arial'));
         expect(result[0].textDecoration, equals('underline'));
+      });
+    });
+  });
+
+  group('verboseGetRichTextSync', () {
+    group('Exception handling', () {
+      test('throws RichTextException for unclosed tag', () async {
+        RichTextException? caught;
+        try {
+          await verboseGetRichText('<bold>hello');
+        } on RichTextException catch (e) {
+          caught = e;
+        }
+        expect(caught, isNotNull);
+        expect(caught!.message, contains('Invalid XML tag'));
+      });
+
+      test('throws RichTextException with message for invalid XML', () async {
+        try {
+          await verboseGetRichText('<bold>hello');
+          fail('Expected RichTextException');
+        } on RichTextException catch (e) {
+          expect(e.message, contains('Invalid XML tag'));
+          expect(e.cause, isNotNull);
+        }
+      });
+
+      test('throws RichTextException for mismatched tags', () async {
+        RichTextException? caught;
+        try {
+          await verboseGetRichText('<bold>hello</b>');
+        } on RichTextException catch (e) {
+          caught = e;
+        }
+        expect(caught, isNotNull);
+        expect(caught!.message, contains('Invalid XML tag'));
+      });
+
+      test('throws RichTextException for malformed XML', () async {
+        RichTextException? caught;
+        try {
+          await verboseGetRichText('<bold attr=>hello</bold>');
+        } on RichTextException catch (e) {
+          caught = e;
+        }
+        expect(caught, isNotNull);
+        expect(caught!.message, contains('Failed to parse XML'));
+      });
+    });
+
+    group('Unrecognized tags', () {
+      test('reports unrecognized tag in descriptor', () async {
+        final result = await verboseGetRichText('<hi>hello dart</hi>');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello dart'));
+        expect(result[0].descriptor.unrecognizedTag, equals('hi'));
+        expect(result[0].descriptor.hasIssues, isTrue);
+      });
+
+      test('reports unrecognized tag with no unrecognized attributes',
+          () async {
+        final result = await verboseGetRichText('<custom>text</custom>');
+
+        expect(result, hasLength(1));
+        expect(result[0].descriptor.unrecognizedTag, equals('custom'));
+        expect(result[0].descriptor.unrecognizedAttributes, isEmpty);
+      });
+
+      test('multiple unrecognized tags create separate items', () async {
+        final result =
+            await verboseGetRichText('<foo>hello</foo><bar>world</bar>');
+
+        expect(result, hasLength(2));
+        expect(result[0].descriptor.unrecognizedTag, equals('foo'));
+        expect(result[1].descriptor.unrecognizedTag, equals('bar'));
+      });
+    });
+
+    group('Unrecognized attributes', () {
+      test('reports unrecognized attribute on bold tag', () async {
+        final result =
+            await verboseGetRichText('<bold color="red">hello dart</bold>');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello dart'));
+        expect(result[0].bold, isTrue);
+        expect(result[0].descriptor.unrecognizedTag, isNull);
+        expect(result[0].descriptor.unrecognizedAttributes, contains('color'));
+        expect(result[0].descriptor.hasIssues, isTrue);
+      });
+
+      test('reports unrecognized attribute on strike tag', () async {
+        final result =
+            await verboseGetRichText('<strike color="red">hello dart</strike>');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello dart'));
+        expect(result[0].descriptor.unrecognizedTag, isNull);
+        expect(result[0].descriptor.unrecognizedAttributes, contains('color'));
+        expect(result[0].descriptor.hasIssues, isTrue);
+      });
+
+      test('reports unrecognized attribute on italic tag', () async {
+        final result =
+            await verboseGetRichText('<italic color="red">hello dart</italic>');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello dart'));
+        expect(result[0].descriptor.unrecognizedTag, isNull);
+        expect(result[0].descriptor.unrecognizedAttributes, contains('color'));
+        expect(result[0].descriptor.hasIssues, isTrue);
+      });
+
+      test('reports multiple unrecognized attributes', () async {
+        final result = await verboseGetRichText(
+          '<bold foo="1" bar="2">text</bold>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].descriptor.unrecognizedAttributes, contains('foo'));
+        expect(result[0].descriptor.unrecognizedAttributes, contains('bar'));
+        expect(result[0].descriptor.unrecognizedAttributes, hasLength(2));
+      });
+
+      test('does not report recognized attributes on span', () async {
+        final result = await verboseGetRichText(
+          '<span color="red" font-size="16">styled</span>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].color, equals('red'));
+        expect(result[0].fontSize, equals(16.0));
+        expect(result[0].descriptor.isEmpty, isTrue);
+      });
+
+      test('reports unrecognized attribute on span with recognized ones',
+          () async {
+        final result = await verboseGetRichText(
+          '<span color="red" unknown="value">styled</span>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].color, equals('red'));
+        expect(
+          result[0].descriptor.unrecognizedAttributes,
+          contains('unknown'),
+        );
+        expect(result[0].descriptor.unrecognizedAttributes, hasLength(1));
+      });
+
+      test('does not report camelCase versions as unrecognized', () async {
+        final result = await verboseGetRichText(
+          '<span backgroundColor="yellow" fontWeight="700">text</span>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].backgroundColor, equals('yellow'));
+        expect(result[0].fontWeight, equals(700));
+        // camelCase attributes are recognized for span
+        expect(result[0].descriptor.unrecognizedAttributes, isEmpty);
+      });
+    });
+
+    group('Valid parsing', () {
+      test('returns empty descriptor for recognized tags', () async {
+        final result = await verboseGetRichText('<b>hello</b>');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello'));
+        expect(result[0].bold, isTrue);
+        expect(result[0].descriptor.isEmpty, isTrue);
+      });
+
+      test('empty string returns empty list', () async {
+        final result = await verboseGetRichText('');
+        expect(result, isEmpty);
+      });
+
+      test('plain text has empty descriptor', () async {
+        final result = await verboseGetRichText('hello world');
+
+        expect(result, hasLength(1));
+        expect(result[0].text, equals('hello world'));
+        expect(result[0].descriptor.isEmpty, isTrue);
+      });
+
+      test('nested tags work correctly', () async {
+        final result = await verboseGetRichText('<b>bold <u>underline</u></b>');
+
+        expect(result, hasLength(2));
+        expect(result[0].text, equals('bold '));
+        expect(result[0].bold, isTrue);
+        expect(result[0].descriptor.isEmpty, isTrue);
+
+        expect(result[1].text, equals('underline'));
+        expect(result[1].bold, isTrue);
+        expect(
+          result[1].textDecoration,
+          equals(kUnderlineTextDecoration),
+        );
+        expect(result[1].descriptor.isEmpty, isTrue);
+      });
+
+      test('merges consecutive segments with same style and descriptor',
+          () async {
+        // Two consecutive tags with same style and descriptor should be merged
+        final result = await verboseGetRichText('<b>hello</b><b>there</b>');
+
+        expect(result, hasLength(1));
+        // "hello" and "there" should be merged into one item
+        // because they have the same style (bold) and descriptor (empty)
+        expect(result[0].text, equals('hellothere'));
+        expect(result[0].bold, isTrue);
+        expect(result[0].textDecoration, isNull);
+        expect(result[0].descriptor.isEmpty, isTrue);
+      });
+
+      test('a tag with href has empty descriptor', () async {
+        final result = await verboseGetRichText(
+          '<a href="https://example.com">link</a>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].link, equals('https://example.com'));
+        expect(result[0].descriptor.isEmpty, isTrue);
+      });
+
+      test('a tag with unrecognized attribute reports it', () async {
+        final result = await verboseGetRichText(
+          '<a href="https://example.com" target="_blank">link</a>',
+        );
+
+        expect(result, hasLength(1));
+        expect(result[0].link, equals('https://example.com'));
+        expect(result[0].descriptor.unrecognizedAttributes, contains('target'));
+      });
+    });
+
+    group('RichTextItemDescriptor', () {
+      test('empty descriptor has no issues', () async {
+        const descriptor = RichTextItemDescriptor.empty;
+        expect(descriptor.isEmpty, isTrue);
+        expect(descriptor.hasIssues, isFalse);
+      });
+
+      test('descriptor with unrecognized tag has issues', () async {
+        const descriptor = RichTextItemDescriptor(unrecognizedTag: 'foo');
+        expect(descriptor.hasIssues, isTrue);
+        expect(descriptor.isEmpty, isFalse);
+      });
+
+      test('descriptor with unrecognized attributes has issues', () async {
+        const descriptor = RichTextItemDescriptor(
+          unrecognizedAttributes: ['foo', 'bar'],
+        );
+        expect(descriptor.hasIssues, isTrue);
+      });
+
+      test('descriptor equality works', () async {
+        const d1 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        const d2 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        const d3 = RichTextItemDescriptor(unrecognizedTag: 'foo');
+        const d4 = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['baz'],
+        );
+
+        expect(d1, equals(d2));
+        expect(d1, isNot(equals(d3)));
+        expect(d1, isNot(equals(d4)));
+      });
+
+      test('descriptor toString works', () async {
+        const descriptor = RichTextItemDescriptor(
+          unrecognizedTag: 'foo',
+          unrecognizedAttributes: ['bar'],
+        );
+        final str = descriptor.toString();
+        expect(str, contains('unrecognizedTag: foo'));
+        expect(str, contains('unrecognizedAttributes'));
+      });
+
+      test('empty descriptor toString', () {
+        expect(
+          RichTextItemDescriptor.empty.toString(),
+          equals('RichTextItemDescriptor.empty'),
+        );
+      });
+    });
+
+    group('RichTextException', () {
+      test('toString without cause', () {
+        const e = RichTextException('test message');
+        expect(e.toString(), equals('RichTextException: test message'));
+      });
+
+      test('toString with cause', () {
+        final e = RichTextException('test message', cause: Exception('cause'));
+        expect(e.toString(), contains('test message'));
+        expect(e.toString(), contains('caused by'));
+      });
+    });
+
+    group('VerboseRichTextItem', () {
+      test('equality works', () {
+        final item1 = VerboseRichTextItem(
+          text: 'hello',
+        );
+        final item2 = VerboseRichTextItem(text: 'hello');
+        final item3 = VerboseRichTextItem(text: 'world');
+
+        expect(item1, equals(item2));
+        expect(item1, isNot(equals(item3)));
+      });
+
+      test('identical check in equality', () {
+        final item = VerboseRichTextItem(
+          text: 'hello',
+        );
+        expect(item == item, isTrue);
+      });
+
+      test('equality works with different types', () {
+        final item = VerboseRichTextItem(
+          text: 'hello',
+        );
+        // ignore: unrelated_type_equality_checks for test purposes
+        expect(item == 'VerboseRichTextItem', isFalse);
+      });
+
+      test('hashCode is consistent', () {
+        final item1 = VerboseRichTextItem(
+          text: 'hello',
+        );
+        final item2 = VerboseRichTextItem(
+          text: 'hello',
+        );
+
+        expect(item1.hashCode, equals(item2.hashCode));
+      });
+
+      test('toString works', () {
+        final item = VerboseRichTextItem(
+          text: 'hello',
+        );
+        final str = item.toString();
+        expect(str, contains('VerboseRichTextItem'));
+        expect(str, contains('hello'));
       });
     });
   });

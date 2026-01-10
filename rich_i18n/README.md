@@ -1,5 +1,14 @@
 # rich_i18n
 
+[![package badge][package_badge]][pub_link]
+[![pub points][pub_points_badge]][pub_link]
+[![pub likes][pub_likes_badge]][pub_link]
+[![codecov][codecov_badge]][codecov_link]
+[![ci badge][ci_badge]][ci_link]
+[![license][license_badge]][license_link],
+[![pub publisher][pub_publisher_badge]][pub_publisher_link],
+
+
 A Dart library for parsing rich text with XML tags into structured items.
 
 
@@ -81,3 +90,17 @@ This library is intentionally **framework-agnostic** and has no Flutter dependen
 - **No custom widgets to maintain**: You don't need to import and maintain a third-party widget in your codebase
 - **Maximum flexibility**: Convert to `TextSpan`, HTML, or any other format you need
 - **Pure Dart**: Can be used in CLI tools, servers, or any Dart project
+
+
+[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license_link]: https://opensource.org/licenses/MIT
+[package_badge]: https://img.shields.io/pub/v/rich_i18n.svg
+[codecov_badge]: https://img.shields.io/codecov/c/github/MattiaPispisa/rich_i18n/main?flag=rich_i18n&logo=codecov
+[codecov_link]: https://app.codecov.io/gh/MattiaPispisa/rich_i18n/tree/main/packages/rich_i18n
+[ci_badge]: https://img.shields.io/github/actions/workflow/status/MattiaPispisa/rich_i18n/main.yaml
+[ci_link]: https://github.com/MattiaPispisa/rich_i18n/actions/workflows/main.yaml
+[pub_points_badge]: https://img.shields.io/pub/points/rich_i18n
+[pub_link]: https://pub.dev/packages/rich_i18n
+[pub_publisher_badge]: https://img.shields.io/pub/publisher/rich_i18n
+[pub_publisher_link]: https://pub.dev/packages?q=publisher%3Amattiapispisa.it
+[pub_likes_badge]: https://img.shields.io/pub/likes/rich_i18n

@@ -1,3 +1,5 @@
+import 'package:rich_i18n/rich_i18n.dart';
+
 /// The font weight value that represents bold text.
 const int kBoldFontWeight = 700;
 
@@ -171,5 +173,62 @@ class RichTextItem {
         fontSize == other.fontSize &&
         fontFamily == other.fontFamily &&
         textDecoration == other.textDecoration;
+  }
+}
+
+/// A [RichTextItem] with additional descriptor information.
+///
+/// Used by [verboseGetRichText] to provide information about
+/// unrecognized tags and attributes.
+class VerboseRichTextItem extends RichTextItem {
+  /// Creates a new [VerboseRichTextItem] with the given properties
+  /// and descriptor.
+  VerboseRichTextItem({
+    required super.text,
+    super.color,
+    super.link,
+    super.backgroundColor,
+    super.fontWeight,
+    super.fontSize,
+    super.fontFamily,
+    super.textDecoration,
+    this.descriptor = RichTextItemDescriptor.empty,
+  });
+
+  /// Creates a [VerboseRichTextItem] from a [RichTextItem] and descriptor.
+  VerboseRichTextItem.fromItem({
+    required RichTextItem item,
+    this.descriptor = RichTextItemDescriptor.empty,
+  }) : super(
+          text: item.text,
+          color: item.color,
+          link: item.link,
+          backgroundColor: item.backgroundColor,
+          fontWeight: item.fontWeight,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          textDecoration: item.textDecoration,
+        );
+
+  /// The descriptor containing any parsing issues for this item.
+  final RichTextItemDescriptor descriptor;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other is! VerboseRichTextItem) {
+      return super == other;
+    }
+    return super == other && descriptor == other.descriptor;
+  }
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, descriptor);
+
+  @override
+  String toString() {
+    return 'VerboseRichTextItem(${super.toString()}, descriptor: $descriptor)';
   }
 }
