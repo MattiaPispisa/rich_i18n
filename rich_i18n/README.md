@@ -95,8 +95,6 @@ The example includes an interactive editor where you can:
 
 <img width="500" alt="rich_text_flutter_example" src="https://raw.githubusercontent.com/MattiaPispisa/rich_i18n/main/assets/rich_text_flutter_example.png">
 
-To run the Flutter example:
-
 ## Why not Flutter?
 
 This library is intentionally **framework-agnostic** and has no Flutter dependency:
