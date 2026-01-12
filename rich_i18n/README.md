@@ -5,8 +5,8 @@
 [![pub likes][pub_likes_badge]][pub_link]
 [![codecov][codecov_badge]][codecov_link]
 [![ci badge][ci_badge]][ci_link]
-[![license][license_badge]][license_link],
-[![pub publisher][pub_publisher_badge]][pub_publisher_link],
+[![license][license_badge]][license_link]
+[![pub publisher][pub_publisher_badge]][pub_publisher_link]
 
 
 A Dart library for parsing rich text with XML tags into structured items.
