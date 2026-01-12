@@ -38,7 +38,6 @@ class RichI18nCliCommandRunner extends CompletionCommandRunner<int> {
       );
 
     // Add sub commands
-    addCommand(SampleCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
     addCommand(VerifyCommand(logger: _logger));
   }
