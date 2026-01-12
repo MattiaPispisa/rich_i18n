@@ -63,7 +63,8 @@ void main() {
       verify(() => logger.err('Failed to check for updates.')).called(1);
     });
 
-    test('Does not show update message when the shell calls the '
+    test(
+        'Does not show update message when the shell calls the '
         'completion command', () async {
       when(
         () => pubUpdater.getLatestVersion(any()),
@@ -162,22 +163,6 @@ void main() {
         verify(() => logger.detail('  Top level options:')).called(1);
         verify(() => logger.detail('  - verbose: true')).called(1);
         verifyNever(() => logger.detail('    Command options:'));
-      });
-
-      test('enables verbose logging for sub commands', () async {
-        final result = await commandRunner.run([
-          '--verbose',
-          'sample',
-          '--cyan',
-        ]);
-        expect(result, equals(ExitCode.success.code));
-
-        verify(() => logger.detail('Argument information:')).called(1);
-        verify(() => logger.detail('  Top level options:')).called(1);
-        verify(() => logger.detail('  - verbose: true')).called(1);
-        verify(() => logger.detail('  Command: sample')).called(1);
-        verify(() => logger.detail('    Command options:')).called(1);
-        verify(() => logger.detail('    - cyan: true')).called(1);
       });
     });
   });

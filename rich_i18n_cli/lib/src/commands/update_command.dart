@@ -12,8 +12,8 @@ import 'package:rich_i18n_cli/src/version.dart';
 class UpdateCommand extends Command<int> {
   /// {@macro update_command}
   UpdateCommand({required Logger logger, PubUpdater? pubUpdater})
-    : _logger = logger,
-      _pubUpdater = pubUpdater ?? PubUpdater();
+      : _logger = logger,
+        _pubUpdater = pubUpdater ?? PubUpdater();
 
   final Logger _logger;
   final PubUpdater _pubUpdater;

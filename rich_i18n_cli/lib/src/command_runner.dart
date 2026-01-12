@@ -21,9 +21,9 @@ const description = 'A Very Good Project created by Very Good CLI.';
 class RichI18nCliCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro rich_i18n_cli_command_runner}
   RichI18nCliCommandRunner({Logger? logger, PubUpdater? pubUpdater})
-    : _logger = logger ?? Logger(),
-      _pubUpdater = pubUpdater ?? PubUpdater(),
-      super(executableName, description) {
+      : _logger = logger ?? Logger(),
+        _pubUpdater = pubUpdater ?? PubUpdater(),
+        super(executableName, description) {
     // Add root options and flags
     argParser
       ..addFlag(
