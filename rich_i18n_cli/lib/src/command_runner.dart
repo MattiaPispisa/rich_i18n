@@ -4,7 +4,6 @@ import 'package:cli_completion/cli_completion.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:rich_i18n_cli/src/commands/commands.dart';
-import 'package:rich_i18n_cli/src/commands/verify_command.dart';
 import 'package:rich_i18n_cli/src/version.dart';
 
 const executableName = 'rich_i18n_cli';
