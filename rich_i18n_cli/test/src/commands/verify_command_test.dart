@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:mason_logger/mason_logger.dart';
@@ -277,8 +278,22 @@ template-arb-file: app_en.arb
         final reportFile = File(path.join(tempDir.path, 'report.txt'));
         expect(reportFile.existsSync(), isTrue);
         final reportContent = reportFile.readAsStringSync();
-        expect(reportContent, contains('hello'));
-        expect(reportContent, contains('parsingException'));
+        final reportJson = jsonDecode(reportContent) as Map<String, dynamic>;
+        
+        // Verify JSON structure
+        expect(reportJson, isA<Map<String, dynamic>>());
+        final fileKey = reportJson.keys.first;
+        expect(fileKey, contains('app_en.arb'));
+        
+        final fileData = reportJson[fileKey] as Map<String, dynamic>;
+        expect(fileData['validKeys'], equals(1));
+        expect(fileData['invalidKeys'], equals(1));
+        expect(fileData['errors'], isA<Map<String, dynamic>>());
+        
+        final errors = fileData['errors'] as Map<String, dynamic>;
+        expect(errors.containsKey('hello'), isTrue);
+        expect(errors['hello'], isA<String>());
+        expect(errors['hello'], contains('Invalid XML tag'));
       });
 
       test('should create report file with unrecognized tags', () async {
@@ -302,9 +317,19 @@ template-arb-file: app_en.arb
         final reportFile = File('text_rich_i18n_styled_error');
         expect(reportFile.existsSync(), isTrue);
         final reportContent = reportFile.readAsStringSync();
-        expect(reportContent, contains('hello'));
-        expect(reportContent, contains('descriptorIssue'));
-        expect(reportContent, contains('Unrecognized tag: unknown'));
+        final reportJson = jsonDecode(reportContent) as Map<String, dynamic>;
+        
+        // Verify JSON structure
+        final fileKey = reportJson.keys.first;
+        expect(fileKey, contains('app_en.arb'));
+        
+        final fileData = reportJson[fileKey] as Map<String, dynamic>;
+        expect(fileData['validKeys'], equals(0));
+        expect(fileData['invalidKeys'], equals(1));
+        
+        final errors = fileData['errors'] as Map<String, dynamic>;
+        expect(errors.containsKey('hello'), isTrue);
+        expect(errors['hello'], contains('Unrecognized tag: unknown'));
       });
 
       test('should create report file with unrecognized attributes', () async {
@@ -328,9 +353,19 @@ template-arb-file: app_en.arb
         final reportFile = File('text_rich_i18n_styled_error');
         expect(reportFile.existsSync(), isTrue);
         final reportContent = reportFile.readAsStringSync();
-        expect(reportContent, contains('hello'));
-        expect(reportContent, contains('descriptorIssue'));
-        expect(reportContent, contains('Unrecognized attributes'));
+        final reportJson = jsonDecode(reportContent) as Map<String, dynamic>;
+        
+        // Verify JSON structure
+        final fileKey = reportJson.keys.first;
+        expect(fileKey, contains('app_en.arb'));
+        
+        final fileData = reportJson[fileKey] as Map<String, dynamic>;
+        expect(fileData['validKeys'], equals(0));
+        expect(fileData['invalidKeys'], equals(1));
+        
+        final errors = fileData['errors'] as Map<String, dynamic>;
+        expect(errors.containsKey('hello'), isTrue);
+        expect(errors['hello'], contains('Unrecognized attributes'));
       });
     });
 
@@ -348,7 +383,8 @@ template-arb-file: app_en.arb
   "@hello": {
     "description": "A greeting",
     "type": "text"
-  }
+  },
+  "validKey": "Valid <b>text</b>"
 }
 ''');
 
@@ -360,6 +396,18 @@ template-arb-file: app_en.arb
 
         expect(exitCode, ExitCode.success.code);
         verify(() => logger.info('✓ No errors found in ARB files')).called(1);
+        
+        // Verify report JSON includes file with valid keys
+        final reportFile = File('text_rich_i18n_styled_error');
+        expect(reportFile.existsSync(), isTrue);
+        final reportContent = reportFile.readAsStringSync();
+        final reportJson = jsonDecode(reportContent) as Map<String, dynamic>;
+        
+        final fileKey = reportJson.keys.first;
+        final fileData = reportJson[fileKey] as Map<String, dynamic>;
+        expect(fileData['validKeys'], equals(1));
+        expect(fileData['invalidKeys'], equals(0));
+        expect(fileData['errors'], isEmpty);
       });
 
       test('should handle empty ARB files', () async {
@@ -430,6 +478,12 @@ template-arb-file: app_en.arb
 
         final reportFile = File(customReportPath);
         expect(reportFile.existsSync(), isTrue);
+        
+        // Verify JSON format
+        final reportContent = reportFile.readAsStringSync();
+        final reportJson = jsonDecode(reportContent) as Map<String, dynamic>;
+        expect(reportJson, isA<Map<String, dynamic>>());
+        
         reportFile.deleteSync();
       });
 

@@ -7,9 +7,16 @@ import 'package:path/path.dart' as path;
 import 'package:rich_i18n/rich_i18n.dart';
 import 'package:yaml/yaml.dart';
 
-const _kArbDir = 'arb-dir';
-const _kOutput = 'output';
+const _kCommandName = 'verify';
+const _kArbExtension = '.arb';
+const _kL10nYamlFile = 'l10n.yaml';
+const _kDefaultArbDir = 'lib/l10n';
+const _kMetadataPrefix = '@';
+
+const _kArgArbDir = 'arb-dir';
+const _kArgOutput = 'output';
 const _kDefaultOutput = 'text_rich_i18n_styled_error';
+const _kYamlArbDirKey = 'arb-dir';
 
 /// {@template verify_command}
 /// A command which verifies rich i18n text in ARB files.
@@ -19,15 +26,15 @@ class VerifyCommand extends Command<int> {
   VerifyCommand({required Logger logger}) : _logger = logger {
     argParser
       ..addOption(
-        _kArbDir,
-        help: 'Directory containing ARB files (if l10n.yaml not found)',
+        _kArgArbDir,
+        help: 'Directory containing ARB files '
+            '(defaults to search in $_kL10nYamlFile)',
         valueHelp: 'path',
       )
       ..addOption(
-        _kOutput,
+        _kArgOutput,
         abbr: 'o',
-        help: 'Output file for error report '
-            '(default: $_kDefaultOutput)',
+        help: 'Output file for error report ',
         defaultsTo: _kDefaultOutput,
       );
   }
@@ -38,15 +45,13 @@ class VerifyCommand extends Command<int> {
   String get description => 'Verify rich i18n text in ARB translation files '
       'and generate error report.';
 
-  static const String commandName = 'verify';
-
   @override
-  String get name => commandName;
+  String get name => _kCommandName;
 
   @override
   Future<int> run() async {
-    final arbDir = argResults?[_kArbDir] as String?;
-    final outputFile = argResults?[_kOutput] as String? ?? _kDefaultOutput;
+    final arbDir = argResults?[_kArgArbDir] as String?;
+    final outputFile = argResults?[_kArgOutput] as String? ?? _kDefaultOutput;
 
     // Find ARB files
     final List<String> arbFiles;
@@ -65,22 +70,29 @@ class VerifyCommand extends Command<int> {
     _logger.info('Found ${arbFiles.length} ARB file(s) to verify');
 
     // Process each ARB file
-    final errors = <ArbError>[];
+    final errors = <_ArbError>[];
+    final fileStats = <String, _FileStats>{};
     final progress = _logger.progress('Verifying ARB files');
 
     for (final arbFile in arbFiles) {
       try {
-        final fileErrors = await _verifyArbFile(arbFile);
-        errors.addAll(fileErrors);
+        final result = await _verifyArbFile(arbFile);
+        errors.addAll(result.errors);
+        fileStats[arbFile] = result.stats;
       } on Exception catch (e) {
         _logger.err('Error processing $arbFile: $e');
         errors.add(
-          ArbError(
+          _ArbError(
             file: arbFile,
             key: null,
             error: 'Failed to process file: $e',
-            errorType: ArbErrorType.fileError,
+            errorType: _ArbErrorType.fileError,
           ),
+        );
+        // For file-level errors, we don't have stats
+        fileStats[arbFile] = const _FileStats(
+          validKeys: 0,
+          invalidKeys: 0,
         );
       }
     }
@@ -90,15 +102,14 @@ class VerifyCommand extends Command<int> {
     // Generate report
     if (errors.isEmpty) {
       _logger.info('✓ No errors found in ARB files');
-      // Still create an empty report file
-      await _writeReport(outputFile, errors);
+      await _writeReport(outputFile, errors, fileStats);
       return ExitCode.success.code;
     }
 
     _logger.warn('✗ Found ${errors.length} error(s)');
 
     try {
-      await _writeReport(outputFile, errors);
+      await _writeReport(outputFile, errors, fileStats);
       _logger.info('Error report written to: $outputFile');
       return ExitCode.config.code;
     } on Exception catch (e) {
@@ -118,13 +129,17 @@ class VerifyCommand extends Command<int> {
     }
 
     // Try to find l10n.yaml in current directory
-    final l10nYaml = File('l10n.yaml');
+    final l10nYaml = File(_kL10nYamlFile);
     if (l10nYaml.existsSync()) {
       return _findArbFilesFromL10nYaml(l10nYaml);
     }
 
     // Fallback: search in common locations
-    final commonLocations = ['lib/l10n', 'lib/l10n/app_*.arb', 'l10n'];
+    final commonLocations = [
+      _kDefaultArbDir,
+      '$_kDefaultArbDir/app_*$_kArbExtension',
+      'l10n',
+    ];
     for (final location in commonLocations) {
       final dir = Directory(location);
       if (dir.existsSync()) {
@@ -136,8 +151,8 @@ class VerifyCommand extends Command<int> {
     }
 
     throw Exception(
-      'No ARB files found. Please specify --arb-dir'
-      ' or ensure l10n.yaml exists.',
+      'No ARB files found. Please specify --$_kArgArbDir'
+      ' or ensure $_kL10nYamlFile exists.',
     );
   }
 
@@ -148,7 +163,7 @@ class VerifyCommand extends Command<int> {
       final yaml = loadYaml(content) as Map;
 
       // Extract arb-dir from l10n.yaml
-      final arbDir = yaml['arb-dir'] as String? ?? 'lib/l10n';
+      final arbDir = yaml[_kYamlArbDirKey] as String? ?? _kDefaultArbDir;
 
       // Resolve paths relative to l10n.yaml location
       final l10nYamlDir = path.dirname(l10nYaml.path);
@@ -157,7 +172,7 @@ class VerifyCommand extends Command<int> {
       final dir = Directory(resolvedArbDir);
       if (!dir.existsSync()) {
         throw Exception(
-          'ARB directory from l10n.yaml does not exist: $resolvedArbDir',
+          'ARB directory from $_kL10nYamlFile does not exist: $resolvedArbDir',
         );
       }
 
@@ -170,9 +185,9 @@ class VerifyCommand extends Command<int> {
     } on YamlException catch (e) {
       throw Exception('Error parsing YAML: $e');
     } on FormatException catch (e) {
-      throw Exception('Error parsing l10n.yaml: $e');
+      throw Exception('Error parsing $_kL10nYamlFile: $e');
     } on Exception catch (e) {
-      throw Exception('Error reading l10n.yaml: $e');
+      throw Exception('Error reading $_kL10nYamlFile: $e');
     }
   }
 
@@ -180,7 +195,7 @@ class VerifyCommand extends Command<int> {
   Future<List<String>> _findArbFilesInDirectory(Directory dir) async {
     final files = <String>[];
     await for (final entity in dir.list(recursive: true)) {
-      if (entity is File && entity.path.endsWith('.arb')) {
+      if (entity is File && entity.path.endsWith(_kArbExtension)) {
         files.add(entity.path);
       }
     }
@@ -188,161 +203,196 @@ class VerifyCommand extends Command<int> {
   }
 
   /// Verifies a single ARB file and returns any errors found.
-  Future<List<ArbError>> _verifyArbFile(String arbFile) async {
-    final errors = <ArbError>[];
+  Future<_VerifyResult> _verifyArbFile(String arbFile) async {
+    final errors = <_ArbError>[];
+    var validKeys = 0;
+    var invalidKeys = 0;
 
     try {
       final file = File(arbFile);
       final content = await file.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
 
-      // Process each key-value pair in the ARB file
       for (final entry in json.entries) {
-        final key = entry.key;
-        final value = entry.value;
+        final result = await _validateArbEntry(
+          key: entry.key,
+          value: entry.value,
+          arbFile: arbFile,
+        );
 
-        // Skip metadata keys (start with @)
-        if (key.startsWith('@')) {
-          continue;
-        }
+        if (result.isIgnored) continue;
 
-        // Only process string values
-        if (value is String) {
-          try {
-            final items = await verboseGetRichText(value);
-
-            // Check for issues in descriptors
-            for (final item in items) {
-              if (item.descriptor.hasIssues) {
-                final issues = <String>[];
-
-                if (item.descriptor.unrecognizedTag != null) {
-                  issues.add(
-                    'Unrecognized tag: ${item.descriptor.unrecognizedTag}',
-                  );
-                }
-
-                if (item.descriptor.unrecognizedAttributes.isNotEmpty) {
-                  issues.add(
-                    'Unrecognized attributes: '
-                    '${item.descriptor.unrecognizedAttributes.join(", ")}',
-                  );
-                }
-
-                errors.add(
-                  ArbError(
-                    file: arbFile,
-                    key: key,
-                    error: issues.join('; '),
-                    errorType: ArbErrorType.descriptorIssue,
-                    text: item.text,
-                  ),
-                );
-              }
-            }
-          } on RichTextException catch (e) {
-            errors.add(
-              ArbError(
-                file: arbFile,
-                key: key,
-                error: e.message,
-                errorType: ArbErrorType.parsingException,
-                cause: e.cause?.toString(),
-              ),
-            );
-          } on FormatException catch (e) {
-            errors.add(
-              ArbError(
-                file: arbFile,
-                key: key,
-                error: 'JSON parsing error: $e',
-                errorType: ArbErrorType.fileError,
-              ),
-            );
-          }
+        if (result.isValid) {
+          validKeys++;
+        } else {
+          invalidKeys++;
+          errors.addAll(result.errors);
         }
       }
     } on FormatException catch (e) {
       errors.add(
-        ArbError(
+        _ArbError(
           file: arbFile,
           key: null,
           error: 'Failed to parse ARB file (JSON): $e',
-          errorType: ArbErrorType.fileError,
+          errorType: _ArbErrorType.fileError,
         ),
       );
     } on IOException catch (e) {
       errors.add(
-        ArbError(
+        _ArbError(
           file: arbFile,
           key: null,
           error: 'Failed to read ARB file: $e',
-          errorType: ArbErrorType.fileError,
+          errorType: _ArbErrorType.fileError,
         ),
       );
     }
 
-    return errors;
+    return _VerifyResult(
+      errors: errors,
+      stats: _FileStats(validKeys: validKeys, invalidKeys: invalidKeys),
+    );
   }
 
-  /// Writes the error report to a file.
-  Future<void> _writeReport(
-    String outputFile,
-    List<ArbError> errors,
-  ) async {
-    final file = File(outputFile);
-    final buffer = StringBuffer()
-      ..writeln('# Rich I18n Styled Text Error Report')
-      ..writeln('# Generated by rich_i18n_cli verify command')
-      ..writeln('#')
-      ..writeln('# This file lists all errors found when verifying rich text')
-      ..writeln('# in ARB translation files.')
-      ..writeln()
-      ..writeln('Total errors: ${errors.length}')
-      ..writeln();
+  /// Validates a single ARB entry using early returns to avoid nesting.
+  Future<_EntryResult> _validateArbEntry({
+    required String key,
+    required dynamic value,
+    required String arbFile,
+  }) async {
+    // 1. Check for metadata keys (Ignored)
+    if (key.startsWith(_kMetadataPrefix)) {
+      return _EntryResult.ignored();
+    }
 
-    if (errors.isEmpty) {
-      buffer.writeln('No errors found. All rich text strings are valid.');
-    } else {
-      // Group errors by file
-      final errorsByFile = <String, List<ArbError>>{};
-      for (final error in errors) {
-        errorsByFile.putIfAbsent(error.file, () => []).add(error);
+    // 2. Check for non-string values
+    // (Considered Valid but skipped for processing)
+    if (value is! String) {
+      return _EntryResult.valid();
+    }
+
+    // 3. Process Rich Text String
+    try {
+      final items = await verboseGetRichText(value);
+      final entryErrors = <_ArbError>[];
+
+      for (final item in items) {
+        if (item.descriptor.hasIssues) {
+          final issues = <String>[];
+
+          if (item.descriptor.unrecognizedTag != null) {
+            issues.add('Unrecognized tag: ${item.descriptor.unrecognizedTag}');
+          }
+
+          if (item.descriptor.unrecognizedAttributes.isNotEmpty) {
+            final attrs = item.descriptor.unrecognizedAttributes.join(', ');
+            issues.add('Unrecognized attributes: $attrs');
+          }
+
+          entryErrors.add(
+            _ArbError(
+              file: arbFile,
+              key: key,
+              error: issues.join('; '),
+              errorType: _ArbErrorType.descriptorIssue,
+              text: item.text,
+            ),
+          );
+        }
       }
 
-      for (final entry in errorsByFile.entries) {
-        buffer
-          ..writeln('## File: ${entry.key}')
-          ..writeln();
+      if (entryErrors.isNotEmpty) {
+        return _EntryResult.invalid(entryErrors);
+      }
 
-        for (final error in entry.value) {
-          buffer
-            ..writeln('### Key: ${error.key ?? "(file-level error)"}')
-            ..writeln('**Error Type:** ${error.errorType.name}')
-            ..writeln('**Error:** ${error.error}');
+      return _EntryResult.valid();
+    } on RichTextException catch (e) {
+      return _EntryResult.invalid(
+        [
+          _ArbError(
+            file: arbFile,
+            key: key,
+            error: e.message,
+            errorType: _ArbErrorType.parsingException,
+            cause: e.cause?.toString(),
+          ),
+        ],
+      );
+    } on FormatException catch (e) {
+      return _EntryResult.invalid(
+        [
+          _ArbError(
+            file: arbFile,
+            key: key,
+            error: 'JSON parsing error: $e',
+            errorType: _ArbErrorType.fileError,
+          ),
+        ],
+      );
+    }
+  }
 
-          if (error.text != null) {
-            buffer.writeln('**Text:** ${error.text}');
-          }
+  /// Writes the error report to a file in JSON format.
+  Future<void> _writeReport(
+    String outputFile,
+    List<_ArbError> errors,
+    Map<String, _FileStats> fileStats,
+  ) async {
+    final file = File(outputFile);
+    final report = <String, dynamic>{};
 
-          if (error.cause != null) {
-            buffer.writeln('**Cause:** ${error.cause}');
-          }
+    // Group errors by file
+    final errorsByFile = <String, List<_ArbError>>{};
+    for (final error in errors) {
+      errorsByFile.putIfAbsent(error.file, () => []).add(error);
+    }
 
-          buffer.writeln();
+    // Build report for each file
+    for (final entry in errorsByFile.entries) {
+      final filePath = entry.key;
+      final fileErrors = entry.value;
+      final stats = fileStats[filePath] ??
+          const _FileStats(
+            validKeys: 0,
+            invalidKeys: 0,
+          );
+
+      // Build errors object (key -> error message)
+      final errorsMap = <String, String>{};
+      for (final error in fileErrors) {
+        if (error.key != null) {
+          errorsMap[error.key!] = error.error;
         }
-        buffer.writeln();
+      }
+
+      report[filePath] = {
+        'validKeys': stats.validKeys,
+        'invalidKeys': stats.invalidKeys,
+        'errors': errorsMap,
+      };
+    }
+
+    // Include files with no errors but with stats
+    for (final entry in fileStats.entries) {
+      if (!report.containsKey(entry.key)) {
+        report[entry.key] = {
+          'validKeys': entry.value.validKeys,
+          'invalidKeys': entry.value.invalidKeys,
+          'errors': <String, String>{},
+        };
       }
     }
 
-    await file.writeAsString(buffer.toString());
+    final jsonString = const JsonEncoder.withIndent('  ').convert(report);
+    await file.writeAsString(jsonString);
   }
 }
 
 /// Represents an error found in an ARB file.
-class ArbError {
-  /// Creates a new [ArbError].
-  const ArbError({
+class _ArbError {
+  /// Creates a new [_ArbError].
+  const _ArbError({
     required this.file,
     required this.key,
     required this.error,
@@ -362,7 +412,7 @@ class ArbError {
   final String error;
 
   /// The type of error.
-  final ArbErrorType errorType;
+  final _ArbErrorType errorType;
 
   /// The text content that caused the error (if applicable).
   final String? text;
@@ -372,7 +422,7 @@ class ArbError {
 }
 
 /// Types of errors that can occur during verification.
-enum ArbErrorType {
+enum _ArbErrorType {
   /// Parsing exception (invalid XML).
   parsingException,
 
@@ -381,7 +431,48 @@ enum ArbErrorType {
 
   /// File-level error (could not read/parse file).
   fileError,
+}
 
-  /// Unknown/unexpected error.
-  unknownError,
+/// Statistics for a single ARB file.
+class _FileStats {
+  /// Creates a new [_FileStats].
+  const _FileStats({
+    required this.validKeys,
+    required this.invalidKeys,
+  });
+
+  /// Number of valid translation keys.
+  final int validKeys;
+
+  /// Number of invalid translation keys.
+  final int invalidKeys;
+}
+
+/// Result of verifying an ARB file.
+class _VerifyResult {
+  _VerifyResult({
+    required this.errors,
+    required this.stats,
+  });
+
+  final List<_ArbError> errors;
+  final _FileStats stats;
+}
+
+/// Helper class to handle the result of a single entry validation
+class _EntryResult {
+  const _EntryResult({
+    this.isValid = false,
+    this.isIgnored = false,
+    this.errors = const [],
+  });
+
+  factory _EntryResult.valid() => const _EntryResult(isValid: true);
+  factory _EntryResult.ignored() => const _EntryResult(isIgnored: true);
+  factory _EntryResult.invalid(List<_ArbError> errors) =>
+      _EntryResult(errors: errors);
+
+  final bool isValid;
+  final bool isIgnored;
+  final List<_ArbError> errors;
 }
