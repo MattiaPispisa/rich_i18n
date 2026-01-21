@@ -4,4 +4,5 @@
     "pana",
     "Roboto"
   ],
+  "dart.flutterSdkPath": ".fvm/versions/stable"
 }

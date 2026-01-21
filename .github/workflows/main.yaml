@@ -15,3 +15,11 @@ jobs:
       package_name: rich_i18n
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  rich_i18n_cli:
+    uses: ./.github/workflows/dart_package.yaml
+    with:
+      working_directory: ./rich_i18n_cli
+      min_coverage: 90
+      package_name: rich_i18n_cli
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
