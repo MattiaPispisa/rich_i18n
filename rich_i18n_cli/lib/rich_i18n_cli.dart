@@ -1,4 +1,4 @@
-/// rich_i18n_cli, A CLI tool for verifying rich i18n text in ARB 
+/// rich_i18n_cli, A CLI tool for verifying rich i18n text in ARB
 /// translation files and generating error reports.
 ///
 /// ```sh
