@@ -8,7 +8,7 @@
 [![license][license_badge]][license_link]
 [![pub publisher][pub_publisher_badge]][pub_publisher_link]
 
-A CLI tool to verify [rich i18n text](https://pub.dev/packages/rich_i18n) in ARB translation files and generate error report.
+A CLI tool for verifying [rich i18n text](https://pub.dev/packages/rich_i18n) in ARB translation files and generating error reports.
 
 ## Installation
 
@@ -31,6 +31,46 @@ rich_i18n_cli verify --arb-dir my_arb_dir --output report.txt
 # more info about usage
 rich_i18n_cli verify --help
 ```
+
+## Report Format
+
+The CLI generates a JSON report file containing statistics and errors for each ARB file analyzed. The report structure includes:
+
+- `validKeys`: Number of translation keys that passed validation
+- `invalidKeys`: Number of translation keys with errors
+- `errors`: Object mapping translation keys to their error messages
+
+### Example
+
+Given an ARB file (`arb/en.arb`):
+
+```json
+{
+    "title": "Hello <b>World</b>!",
+    "description": "Malformed <b>text",
+    "body": "Unrecognized <foo>tag</foo>"
+}
+```
+
+The generated report will be:
+
+```json
+{
+  "./arb/en.arb": {
+    "validKeys": 1,
+    "invalidKeys": 2,
+    "errors": {
+      "description": "Invalid XML tag: Expected </b>, but found </root>",
+      "body": "Unrecognized tag: foo"
+    }
+  }
+}
+```
+
+In this example:
+- `title` is valid (1 valid key)
+- `description` has a malformed XML tag (missing closing tag)
+- `body` contains an unrecognized tag `<foo>` (2 invalid keys)
 
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT

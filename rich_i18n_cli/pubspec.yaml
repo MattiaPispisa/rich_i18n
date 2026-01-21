@@ -1,6 +1,6 @@
 name: rich_i18n_cli
-description: A Very Good Project created by Very Good CLI.
-version: 0.0.1
+description: A CLI tool for verifying rich i18n text in ARB translation files and generating error reports.
+version: 0.1.0
 publish_to: none
 
 environment:

@@ -82,6 +82,12 @@ final items = tryGetRichTextSync('Invalid <b>XML');
 - Consecutive text segments with the same style are automatically merged
 - Empty tags are ignored (no unnecessary items created)
 
+## CLI Tool
+
+A companion CLI tool [`rich_i18n_cli`](https://pub.dev/packages/rich_i18n_cli) is available to verify rich text in your ARB translation files. It scans all translation strings, detects parsing errors and unrecognized tags/attributes, and generates a JSON report with detailed statistics.
+
+For more information, installation instructions, and usage examples, see the [rich_i18n_cli documentation](https://github.com/MattiaPispisa/rich_i18n/tree/main/rich_i18n_cli).
+
 ## Flutter Example
 
 A complete Flutter example app is available in the `flutter_example` directory,

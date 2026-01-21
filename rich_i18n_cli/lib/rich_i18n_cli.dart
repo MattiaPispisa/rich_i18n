@@ -1,4 +1,5 @@
-/// rich_i18n_cli, A Very Good Project created by Very Good CLI.
+/// rich_i18n_cli, A CLI tool for verifying rich i18n text in ARB 
+/// translation files and generating error reports.
 ///
 /// ```sh
 /// # activate rich_i18n_cli
