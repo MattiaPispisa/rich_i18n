@@ -109,7 +109,7 @@ This library is intentionally **framework-agnostic** and has no Flutter dependen
 [license_link]: https://opensource.org/licenses/MIT
 [package_badge]: https://img.shields.io/pub/v/rich_i18n.svg
 [codecov_badge]: https://img.shields.io/codecov/c/github/MattiaPispisa/rich_i18n/main?flag=rich_i18n&logo=codecov
-[codecov_link]: https://app.codecov.io/gh/MattiaPispisa/rich_i18n/tree/main/packages/rich_i18n
+[codecov_link]: https://app.codecov.io/gh/MattiaPispisa/rich_i18n/tree/main/rich_i18n
 [ci_badge]: https://img.shields.io/github/actions/workflow/status/MattiaPispisa/rich_i18n/main.yaml
 [ci_link]: https://github.com/MattiaPispisa/rich_i18n/actions/workflows/main.yaml
 [pub_points_badge]: https://img.shields.io/pub/points/rich_i18n
