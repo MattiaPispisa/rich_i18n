@@ -32,9 +32,11 @@ rich_i18n_cli verify --arb-dir my_arb_dir --output report.txt
 rich_i18n_cli verify --help
 ```
 
-## Report Format
+## verify
 
-The CLI generates a JSON report file containing statistics and errors for each ARB file analyzed. The report structure includes:
+### output
+
+The `verify` command generates a report file containing statistics and errors for each ARB file analyzed. The report structure includes:
 
 - `validKeys`: Number of translation keys that passed validation
 - `invalidKeys`: Number of translation keys with errors
@@ -47,8 +49,8 @@ Given an ARB file (`arb/en.arb`):
 ```json
 {
     "title": "Hello <b>World</b>!",
-    "description": "Malformed <b>text",
-    "body": "Unrecognized <foo>tag</foo>"
+    "description": "Malformed <b>text", // tag is not closed
+    "body": "Unrecognized <foo>tag</foo>" // foo is not a valid tag in rich_text
 }
 ```
 
@@ -66,11 +68,6 @@ The generated report will be:
   }
 }
 ```
-
-In this example:
-- `title` is valid (1 valid key)
-- `description` has a malformed XML tag (missing closing tag)
-- `body` contains an unrecognized tag `<foo>` (2 invalid keys)
 
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
