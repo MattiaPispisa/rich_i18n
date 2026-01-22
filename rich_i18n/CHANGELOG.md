@@ -1,3 +1,12 @@
+## [0.1.3](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n-v0.1.3/rich_i18n)
+**Date:** 2026-01-22
+
+[compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n-v0.1.2...rich_i18n-v0.1.3)
+
+### Changed
+
+- chore: update README.md with `rich_i18n_cli` companion CLI tool.
+
 ## [0.1.2](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n-v0.1.2/rich_i18n)
 
 [compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n-v0.1.1...rich_i18n-v0.1.2)
@@ -15,6 +24,7 @@
 **Date:** 2026-01-10
 
 ### Added
+
 - Flutter example app in the `flutter_example` directory.
 
 ### Changed
