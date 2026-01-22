@@ -1,5 +1,16 @@
+## [0.1.2](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n_cli-v0.1.2/rich_i18n_cli)
+**Date:** 2026-01-22
+
+[compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n_cli-v0.1.1...rich_i18n_cli-v0.1.2)
+
+### Changed
+- chore: added example
+- chore: updated README.md
+
 ## [0.1.1](https://github.com/MattiaPispisa/rich_i18n/tree/rich_i18n_cli-v0.1.1/rich_i18n_cli)
 **Date:** 2026-01-22
+
+[compare to previous release](https://github.com/MattiaPispisa/rich_i18n/compare/rich_i18n_cli-v0.1.0...rich_i18n_cli-v0.1.1)
 
 ### Fixed
 - `packageVersion` was not updated for the release.
